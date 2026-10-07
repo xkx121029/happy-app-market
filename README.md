@@ -20,10 +20,10 @@
 
 | 文件名 | 内容说明 |
 | --- | --- |
-| `docs/images/public-home.png` | 前台首页：站点标语、概览大数字、应用卡片列表 |
+| `docs/images/public-home.png` | 前台首页：WebGL 流体首屏、概览大数字、应用目录列表 |
 | `docs/images/public-app.png` | 前台应用详情页：图标、截图、介绍与下载入口 |
 | `docs/images/admin-list.png` | 后台应用列表：上架状态、包体状态与操作入口 |
-| `docs/images/admin-edit.png` | 后台编辑页：应用元数据、图标/截图与包体上传 |
+| `docs/images/admin-edit.png` | 后台编辑弹窗：应用元数据、图标/截图与包体上传 |
 
 ## 目录结构
 

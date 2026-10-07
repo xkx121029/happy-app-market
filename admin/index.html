@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>管理台 · 开心软件市场</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316150f'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='900' fill='%23d2401c' text-anchor='middle'%3E%E5%8F%B0%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/assets/admin.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail">
+        <div class="rail__brand">
+          <span class="brand__mark" aria-hidden="true">台</span>
+          <div class="rail__brandtext">
+            <div class="rail__title" data-site-name>开心软件市场</div>
+            <div class="rail__sub">Console</div>
+          </div>
+        </div>
+
+        <div class="rail__group">
+          <p class="rail__label">库存概览</p>
+          <dl>
+            <div class="rail__stat"><dt>应用总数</dt><dd data-stat="total">—</dd></div>
+            <div class="rail__stat"><dt>已上架</dt><dd class="is-accent" data-stat="published">—</dd></div>
+            <div class="rail__stat"><dt>未上架</dt><dd data-stat="draft">—</dd></div>
+            <div class="rail__stat"><dt>已有包体</dt><dd data-stat="withPackage">—</dd></div>
+            <div class="rail__stat"><dt>累计下载</dt><dd data-stat="downloads">—</dd></div>
+          </dl>
+        </div>
+
+        <div class="rail__foot">
+          <div class="rail__footrow"><span>前台站点</span><b id="rail-public"></b></div>
+          <div class="rail__footrow"><span>后台管理</span><b id="rail-admin"></b></div>
+          <p class="rail__hint">接口说明见项目内 <code>docs/API.md</code></p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <h1 class="topbar__title">
+            应用管理
+            <small id="board-count">正在载入…</small>
+          </h1>
+          <label class="field-inline">
+            <span>搜索</span>
+            <input type="search" id="q" placeholder="应用名 / 开发者 / 包名" autocomplete="off" />
+          </label>
+          <select class="filter" id="status-filter">
+            <option value="">全部状态</option>
+            <option value="1">已上架</option>
+            <option value="0">未上架</option>
+          </select>
+          <button class="btn btn--accent" type="button" id="create">＋ 新建应用</button>
+        </div>
+
+        <div class="board">
+          <div class="board__head" aria-hidden="true">
+            <span>序</span>
+            <span>应用</span>
+            <span class="col-hide">分类</span>
+            <span class="col-hide">版本</span>
+            <span class="col-hide">体积</span>
+            <span>状态</span>
+            <span class="col-hide">下载</span>
+            <span>操作</span>
+          </div>
+          <div id="rows"></div>
+        </div>
+      </main>
+    </div>
+
+    <div id="modal-root"></div>
+    <div class="toaster" id="toaster"></div>
+    <datalist id="category-list"></datalist>
+
+    <script type="module" src="/assets/admin.js"></script>
+  </body>
+</html>

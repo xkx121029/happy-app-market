@@ -1,0 +1,9 @@
+{
+  "siteName": "开心软件市场",
+  "siteSlogan": "纯净分发 · 直接下载安装包",
+  "publicPort": 8080,
+  "adminPort": 8081,
+  "host": "0.0.0.0",
+  "maxUploadMB": 800,
+  "defaultPageSize": 12
+}

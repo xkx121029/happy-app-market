@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>应用详情 · 开心软件市场</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2401c'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='900' fill='white' text-anchor='middle'%3E%E5%BC%80%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="wrap masthead__inner">
+        <a class="brand" href="/">
+          <span class="brand__mark" aria-hidden="true">开</span>
+          <span class="brand__name" data-site-name>开心软件市场</span>
+          <span class="brand__sub">App Archive</span>
+        </a>
+        <div class="masthead__meta">
+          <span><span class="pulse" aria-hidden="true"></span>在线</span>
+          <span>收录 <b data-stat-total>—</b></span>
+          <span>下载 <b data-stat-downloads>—</b></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap page">
+      <a class="backlink" href="/"><span aria-hidden="true">◂</span> 返回应用目录</a>
+      <div id="sheet-root">
+        <div class="sheet">
+          <aside class="sheet__card"><div class="skeleton"><i class="tall"></i></div></aside>
+          <section class="sheet__main"><div class="skeleton"><i></i></div></section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <span data-site-name>开心软件市场</span>
+        <span>应用包体由管理员人工上架 · 下载前请核对版本与体积</span>
+        <span id="build-stamp"></span>
+      </div>
+    </footer>
+
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+# 依赖目录（本项目零第三方依赖，此规则用于兜底）
+node_modules/
+
+# 运行时数据：SQLite 数据库及 WAL / SHM 附属文件
+data/
+
+# 日志
+*.log
+
+# 上传内容：仅保留目录占位，忽略全部运行时文件
+uploads/**
+!uploads/
+!uploads/.gitkeep
+!uploads/icons/
+!uploads/icons/.gitkeep
+!uploads/screenshots/
+!uploads/screenshots/.gitkeep
+!uploads/packages/
+!uploads/packages/.gitkeep
+
+# 系统文件
+.DS_Store
+Thumbs.db

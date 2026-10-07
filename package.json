@@ -1,0 +1,14 @@
+{
+  "name": "happy-app-market",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "开心软件市场 —— 前台下载应用，后台上架/编辑/下架应用包体",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js"
+  }
+}

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>开心软件市场</title>
+    <meta name="description" content="开心软件市场 —— 纯净分发，直接下载应用安装包。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2401c'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='900' fill='white' text-anchor='middle'%3E%E5%BC%80%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="wrap masthead__inner">
+        <a class="brand" href="/">
+          <span class="brand__mark" aria-hidden="true">开</span>
+          <span class="brand__name" data-site-name>开心软件市场</span>
+          <span class="brand__sub">App Archive</span>
+        </a>
+        <div class="masthead__meta">
+          <span><span class="pulse" aria-hidden="true"></span>在线</span>
+          <span>收录 <b data-stat-total>—</b></span>
+          <span>下载 <b data-stat-downloads>—</b></span>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <canvas class="hero__canvas" id="liquid" aria-hidden="true"></canvas>
+      <div class="hero__veil" aria-hidden="true"></div>
+      <div class="hero__grid" aria-hidden="true"></div>
+      <div class="wrap hero__inner">
+        <div class="rise" style="--i: 0">
+          <p class="hero__kicker">纯净分发 · 无捆绑 · 直链安装包</p>
+          <h1 class="hero__title">挑一个<br /><em>趁手</em>的软件</h1>
+          <p class="hero__sub" data-site-slogan>
+            每一款应用都由管理员人工整理上架，附完整介绍与真实截图，点开即下载。
+          </p>
+        </div>
+        <dl class="hero__stats rise" style="--i: 1">
+          <div class="hero__stat">
+            <dt>在架应用</dt>
+            <dd data-stat-total>—<span>款</span></dd>
+          </div>
+          <div class="hero__stat">
+            <dt>累计下载</dt>
+            <dd data-stat-downloads>—<span>次</span></dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="searchbar">
+      <div class="wrap searchbar__inner">
+        <label class="searchbar__field">
+          <span class="searchbar__tag">检索</span>
+          <input
+            type="search"
+            id="q"
+            placeholder="输入应用名、开发者或包名…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+
+    <main class="wrap catalog">
+      <div class="catalog__bar">
+        <div>
+          <h2 class="catalog__title">应用目录</h2>
+          <p class="catalog__count" id="catalog-count">正在载入…</p>
+        </div>
+        <div class="sortbar" id="sortbar" role="group" aria-label="排序方式">
+          <button type="button" data-sort="latest" aria-pressed="true">最新上架</button>
+          <button type="button" data-sort="downloads" aria-pressed="false">最多下载</button>
+          <button type="button" data-sort="name" aria-pressed="false">名称排序</button>
+        </div>
+      </div>
+
+      <div class="listing">
+        <div class="listing__head" aria-hidden="true">
+          <span>序</span>
+          <span>应用</span>
+          <span class="col-cat">分类</span>
+          <span class="col-ver">版本</span>
+          <span class="col-size">体积</span>
+          <span class="col-dl">下载</span>
+          <span>操作</span>
+        </div>
+        <div id="entries"></div>
+      </div>
+
+      <nav class="pager" id="pager" hidden>
+        <button class="btn btn--sm" type="button" id="prev">上一页</button>
+        <span class="pager__info" id="pageinfo">1 / 1</span>
+        <button class="btn btn--sm" type="button" id="next">下一页</button>
+      </nav>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <span data-site-name>开心软件市场</span>
+        <span>应用包体由管理员人工上架 · 下载前请核对版本与体积</span>
+        <span id="build-stamp"></span>
+      </div>
+    </footer>
+
+    <script type="module" src="/assets/liquid.js"></script>
+    <script type="module" src="/assets/site.js"></script>
+  </body>
+</html>

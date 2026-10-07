@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS apps (
   description  TEXT    NOT NULL DEFAULT '',
   icon         TEXT    NOT NULL DEFAULT '',
   screenshots  TEXT    NOT NULL DEFAULT '[]',
+  open_source_urls TEXT NOT NULL DEFAULT '[]',
   package_path TEXT    NOT NULL DEFAULT '',
   package_file TEXT    NOT NULL DEFAULT '',
   package_size INTEGER NOT NULL DEFAULT 0,
@@ -44,6 +45,12 @@ export function createDb(dbFile) {
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
+  // 老库里的 apps 表已存在，CREATE TABLE IF NOT EXISTS 不会补列，这里单独迁移一次
+  try {
+    db.exec("ALTER TABLE apps ADD COLUMN open_source_urls TEXT NOT NULL DEFAULT '[]'");
+  } catch {
+    /* 列已存在，忽略 */
+  }
   return new MarketStore(db);
 }
 
@@ -51,7 +58,8 @@ function now() {
   return new Date().toISOString();
 }
 
-function parseShots(raw) {
+/** 解析以 JSON 字符串存储的字符串数组列 */
+function parseList(raw) {
   try {
     const list = JSON.parse(raw || '[]');
     return Array.isArray(list) ? list.filter((item) => typeof item === 'string') : [];
@@ -72,7 +80,8 @@ function toPublicApp(row) {
     summary: row.summary,
     description: row.description,
     icon: row.icon,
-    screenshots: parseShots(row.screenshots),
+    screenshots: parseList(row.screenshots),
+    open_source_urls: parseList(row.open_source_urls),
     hasPackage: Boolean(row.package_path),
     package_path: row.package_path,
     package_file: row.package_file,
@@ -155,8 +164,8 @@ export class MarketStore {
     const ts = now();
     const info = this.db
       .prepare(
-        `INSERT INTO apps (name, package_name, version, developer, category, summary, description, icon, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO apps (name, package_name, version, developer, category, summary, description, icon, open_source_urls, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         String(data.name || '').trim(),
@@ -167,6 +176,7 @@ export class MarketStore {
         String(data.summary || ''),
         String(data.description || ''),
         String(data.icon || ''),
+        JSON.stringify(Array.isArray(data.open_source_urls) ? data.open_source_urls : []),
         ts,
         ts
       );
@@ -181,6 +191,11 @@ export class MarketStore {
       if (data[key] === undefined) continue;
       fields.push(`${key} = ?`);
       params.push(String(data[key] ?? ''));
+    }
+    // 数组字段需序列化成 JSON，不能走上面的通用字符串转换
+    if (data.open_source_urls !== undefined) {
+      fields.push('open_source_urls = ?');
+      params.push(JSON.stringify(Array.isArray(data.open_source_urls) ? data.open_source_urls : []));
     }
     if (!fields.length) return this.get(id);
     fields.push('updated_at = ?');

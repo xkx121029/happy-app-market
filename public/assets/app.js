@@ -18,6 +18,24 @@ function specRow(label, value) {
   return `<div class="spec__row"><dt>${label}</dt><dd>${escapeHtml(value || '—')}</dd></div>`;
 }
 
+/** 开源地址区块：只渲染合法的 http/https 链接 */
+function openSourceSection(app) {
+  const urls = (app.open_source_urls || []).filter((url) => /^https?:\/\//i.test(url));
+  if (!urls.length) return '';
+  return `
+    <div class="section rise" style="--i:4">
+      <h2 class="section__title">开源地址</h2>
+      <ul class="linklist">
+        ${urls
+          .map(
+            (url) =>
+              `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`
+          )
+          .join('')}
+      </ul>
+    </div>`;
+}
+
 function render(app) {
   const shots = app.screenshots || [];
   const desc = (app.description || '').trim();
@@ -49,24 +67,22 @@ function render(app) {
         <p class="sheet__note">${
           app.hasPackage
             ? `下载文件名：${escapeHtml(app.package_file || '安装包')}`
-            : '管理员尚未上架该应用的安装包。'
+            : '暂时还没有上传安装包。'
         }</p>
       </aside>
 
       <section class="sheet__main">
-        <p class="lede rise" style="--i:1">${escapeHtml(
-          app.summary || '这款应用还没有填写一句话简介。'
-        )}</p>
+        <p class="lede rise" style="--i:1">${escapeHtml(app.summary || '还没有写简介。')}</p>
 
         <div class="section rise" style="--i:2">
-          <h2 class="section__title">应用介绍<sup>01</sup></h2>
+          <h2 class="section__title">应用介绍</h2>
           <div class="prose">${
-            desc ? escapeHtml(desc) : '管理员尚未填写详细的应用介绍。'
+            desc ? escapeHtml(desc) : '还没有填写应用介绍。'
           }</div>
         </div>
 
         <div class="section rise" style="--i:3">
-          <h2 class="section__title">应用截图<sup>02</sup> <span style="color:var(--ink-faint);letter-spacing:.14em">${shots.length} 张</span></h2>
+          <h2 class="section__title">应用截图${shots.length ? `（${shots.length} 张）` : ''}</h2>
           ${
             shots.length
               ? `<div class="shots">${shots
@@ -74,13 +90,14 @@ function render(app) {
                     (src, index) => `
                 <figure>
                   <img src="${escapeHtml(src)}" alt="${escapeHtml(app.name)} 截图 ${index + 1}" loading="lazy" />
-                  <figcaption>FIG. ${String(index + 1).padStart(2, '0')}</figcaption>
                 </figure>`
                   )
                   .join('')}</div>`
               : `<div class="empty"><span class="empty__mark">无</span><p>该应用暂无截图。</p></div>`
           }
         </div>
+
+        ${openSourceSection(app)}
       </section>
     </div>`;
 

@@ -25,6 +25,29 @@ function uploadPathOf(url) {
   return safeJoin(DIRS.uploads, url.slice('/uploads/'.length));
 }
 
+/** 单个应用最多允许的开源链接条数 */
+const MAX_OPEN_SOURCE = 12;
+
+/**
+ * 校验开源链接数组：忽略空串，仅接受 http/https 地址，去重并限制条数。
+ * 传入 undefined 时返回 undefined（表示本次不改动该字段）。
+ */
+function cleanOpenSourceUrls(value) {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error('开源链接需要是数组');
+  const list = [];
+  for (const raw of value) {
+    const url = String(raw ?? '').trim();
+    if (!url) continue;
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      throw new Error(`开源链接需要以 http:// 或 https:// 开头：${url}`);
+    }
+    if (!list.includes(url)) list.push(url);
+  }
+  if (list.length > MAX_OPEN_SOURCE) throw new Error(`开源链接最多 ${MAX_OPEN_SOURCE} 条`);
+  return list;
+}
+
 /** 后台管理服务：独立端口，承载管理页面与全部管理 API */
 export function createAdminServer(store) {
   const routes = [
@@ -150,7 +173,8 @@ async function adminCreateApp(req, res, { store }) {
     category: str(body.category, 60),
     summary: str(body.summary, 300),
     description: str(body.description, 20000),
-    icon: str(body.icon, 500)
+    icon: str(body.icon, 500),
+    open_source_urls: cleanOpenSourceUrls(body.open_source_urls) || []
   });
   return json(res, 201, { ok: true, app });
 }
@@ -175,6 +199,9 @@ async function adminUpdateApp(req, res, { store, params }) {
     // 图标文件统一由 /icon 上传接口管理，这里只允许清空，避免产生孤儿文件
     const next = str(body.icon, 500);
     if (!next) patch.icon = '';
+  }
+  if (body.open_source_urls !== undefined) {
+    patch.open_source_urls = cleanOpenSourceUrls(body.open_source_urls);
   }
   const updated = store.update(params[0], patch);
   return json(res, 200, { ok: true, app: updated });

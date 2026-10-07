@@ -121,18 +121,6 @@
     font-weight: 600;
   }
 
-  .rail__hint {
-    margin-top: 4px;
-    font-size: 0.62rem;
-    line-height: 1.6;
-    color: color-mix(in srgb, var(--paper-card) 42%, transparent);
-  }
-
-  .rail__hint code {
-    font-family: var(--font-mono);
-    color: color-mix(in srgb, var(--paper-card) 70%, transparent);
-  }
-
   .main {
     min-width: 0;
     padding: 22px clamp(18px, 3vw, 34px) 64px;
@@ -523,6 +511,52 @@
     display: flex;
     gap: 6px;
     flex: none;
+  }
+
+  /* 开源链接：一列可增删的输入行 */
+  .linkrows {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .linkrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .linkrow__input {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 11px;
+    background: var(--paper-card);
+    border: 1.5px solid var(--line);
+    border-radius: 2px;
+    font-size: 0.86rem;
+  }
+
+  .linkrow__input:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+
+  .linkrow__del {
+    flex: none;
+    width: 32px;
+    height: 34px;
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-radius: 2px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: all 0.16s var(--ease);
+  }
+
+  .linkrow__del:hover {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
   }
 
   .shotgrid {

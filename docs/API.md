@@ -62,6 +62,7 @@
       "description": "完整介绍文本…",
       "icon": "/uploads/icons/xxx.png",
       "screenshots": ["/uploads/screenshots/a.png"],
+      "open_source_urls": ["https://github.com/xxx/happy-notes"],
       "hasPackage": true,
       "package_path": "/uploads/packages/xxx.apk",
       "package_file": "开心笔记-1.2.0.apk",
@@ -103,7 +104,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 
 ### GET /api/stats
 
-站点概览，用于首页大数字。
+站点概览，用于首页显示收录数与累计下载数。
 
 ```json
 { "ok": true, "total": 1, "downloads": 2 }
@@ -114,7 +115,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 站点名称与标语，取自 `config.json`。
 
 ```json
-{ "ok": true, "siteName": "开心软件市场", "slogan": "纯净分发 · 直接下载安装包" }
+{ "ok": true, "siteName": "开心软件市场", "slogan": "自己写的软件都放在这里" }
 ```
 
 ---
@@ -168,11 +169,12 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 | `category` | 否 | 60 | 分类 |
 | `summary` | 否 | 300 | 一句话简介 |
 | `description` | 否 | 20000 | 应用介绍，保留换行 |
+| `open_source_urls` | 否 | 12 条 | 开源仓库地址数组，每项需以 `http://` 或 `https://` 开头，自动去重；非法地址会返回 `400` |
 
 ```bash
 curl -X POST http://localhost:8081/api/apps \
   -H "Content-Type: application/json" \
-  -d '{"name":"开心笔记","version":"1.2.0","summary":"极简卡片式笔记。"}'
+  -d '{"name":"开心笔记","version":"1.2.0","summary":"极简卡片式笔记。","open_source_urls":["https://github.com/xxx/happy-notes"]}'
 ```
 
 返回 `201` 与新建的 `app`。

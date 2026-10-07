@@ -247,6 +247,32 @@ function pkgSlot() {
     </div>`;
 }
 
+/** 读取当前输入框里的开源链接（保留顺序，含空行） */
+function readLinks() {
+  return [...overlayEl.querySelectorAll('#link-slot .linkrow__input')].map((input) => input.value.trim());
+}
+
+/** 渲染开源链接输入行；没有内容时默认给一行空输入 */
+function linkSlot(values) {
+  const slot = overlayEl.querySelector('#link-slot');
+  const list = values && values.length ? values : [''];
+  slot.innerHTML = `
+    <div class="linkrows">
+      ${list
+        .map(
+          (url) => `
+        <div class="linkrow">
+          <input class="linkrow__input" type="url" spellcheck="false" placeholder="https://github.com/用户名/仓库" value="${escapeHtml(
+            url
+          )}" />
+          <button class="linkrow__del" type="button" data-act="del-link" aria-label="删除这条链接">✕</button>
+        </div>`
+        )
+        .join('')}
+    </div>
+    <button class="btn btn--quiet" type="button" data-act="add-link">＋ 添加一条</button>`;
+}
+
 function pickFiles({ accept, multiple, onDone }) {
   const input = document.createElement('input');
   input.type = 'file';
@@ -376,7 +402,8 @@ async function saveEditor() {
     developer: val('#f-developer').trim(),
     category: val('#f-category').trim(),
     summary: val('#f-summary').trim(),
-    description: val('#f-desc')
+    description: val('#f-desc'),
+    open_source_urls: readLinks().filter(Boolean)
   };
 
   const saveBtn = overlayEl.querySelector('[data-act="save"]');
@@ -453,7 +480,7 @@ function openEditor(app) {
     <div class="panel" role="dialog" aria-modal="true">
       <header class="panel__head">
         <h2>${isNew ? '新建应用' : '编辑应用'}</h2>
-        <span>${isNew ? 'NEW RECORD' : `ID ${currentApp.id} · 创建于 ${escapeHtml(
+        <span>${isNew ? '新应用，尚未保存' : `ID ${currentApp.id} · 创建于 ${escapeHtml(
           (currentApp.created_at || '').slice(0, 10)
         )}`}</span>
         <button class="iconbtn" type="button" data-act="close" aria-label="关闭">✕</button>
@@ -507,6 +534,10 @@ function openEditor(app) {
           )}</textarea>
         </div>
 
+        <p class="fieldset-title">开源链接</p>
+        <p class="field__hint" style="margin:-6px 0 10px">留空即不展示；可填多条 GitHub / Gitee 仓库地址。</p>
+        <div id="link-slot"></div>
+
         <p class="fieldset-title">应用图标</p>
         <div class="upload" id="icon-slot"></div>
 
@@ -529,6 +560,7 @@ function openEditor(app) {
 
   overlayEl = wrap;
   modalRoot.appendChild(wrap);
+  linkSlot(currentApp?.open_source_urls || []);
   iconSlot();
   shotSlot();
   pkgSlot();
@@ -545,6 +577,20 @@ function openEditor(app) {
     if (act === 'clear-icon') return clearIcon();
     if (act === 'pick-shots') return pickFiles({ accept: 'image/*', multiple: true, onDone: handleShots });
     if (act === 'pick-pkg') return pickFiles({ onDone: handlePkg });
+
+    if (act === 'add-link') {
+      const values = readLinks();
+      values.push('');
+      return linkSlot(values);
+    }
+
+    if (act === 'del-link') {
+      const row = target.closest('.linkrow');
+      const index = [...overlayEl.querySelectorAll('#link-slot .linkrow')].indexOf(row);
+      const values = readLinks();
+      values.splice(index, 1);
+      return linkSlot(values);
+    }
 
     if (act === 'clear-pkg') {
       if (!currentApp) {

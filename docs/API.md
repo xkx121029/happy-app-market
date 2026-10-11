@@ -29,6 +29,55 @@
 - 成功响应包含 `"ok": true`，失败响应为 `{ "ok": false, "error": "中文错误说明" }`。
 - 失败时 HTTP 状态码同步反映原因：`400` 参数问题或上传超限、`404` 不存在、`405` 方法不支持。
 - 后台端口已开放 CORS（`Access-Control-Allow-Origin` 回显来源），可从任意页面跨端口调用。
+- 请求了存在但方法不匹配的地址返回 `405`，并带 `Allow` 头；地址完全不存在返回 `404`。
+
+---
+
+## 端点总览
+
+前台公共端口 **8080**（只读）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/apps` | 分页查询已上架应用 |
+| `GET` | `/api/apps/:id` | 单个已上架应用详情 |
+| `GET` | `/api/apps/:id/download` | 下载安装包，支持 `Range` 续传 |
+| `GET` | `/api/categories` | 已上架应用的分类聚合 |
+| `GET` | `/api/stats` | 站点收录数与累计下载数 |
+| `GET` | `/api/site` | 站点设置（文案、强调色、分页条数） |
+
+后台管理端口 **8081**（含全部读写）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api`、`/api/health` | 服务自检，返回角色与端点清单 |
+| `GET` | `/api/overview` | 后台概览：全量统计与分类 |
+| `GET` | `/api/settings` | 读取站点设置与默认值 |
+| `PUT` | `/api/settings` | 更新站点设置 |
+| `POST` | `/api/settings/reset` | 恢复默认设置 |
+| `GET` | `/api/apps` | 全部应用列表（含未上架） |
+| `POST` | `/api/apps` | 新建应用记录 |
+| `GET` | `/api/apps/:id` | 单个应用（含未上架） |
+| `PUT` | `/api/apps/:id` | 更新应用元数据 |
+| `PATCH` | `/api/apps/:id` | 同上，语义为局部更新 |
+| `DELETE` | `/api/apps/:id` | 删除应用并清理磁盘文件 |
+| `POST` | `/api/apps/:id/status` | 上架 / 下架 |
+| `POST` | `/api/apps/:id/package` | 上传应用包体 |
+| `DELETE` | `/api/apps/:id/package` | 移除包体 |
+| `GET` | `/api/apps/:id/download` | 后台下载包体（上架前自测） |
+| `POST` | `/api/apps/:id/icon` | 上传应用图标 |
+| `POST` | `/api/apps/:id/screenshots` | 追加一张应用截图 |
+| `DELETE` | `/api/apps/:id/screenshots` | 删除指定截图 |
+
+静态资源与页面路由（不属 `/api`，但同为对外端点）：
+
+| 路径 | 前台 | 后台 | 说明 |
+| --- | --- | --- | --- |
+| `/` | ✓ | ✓ | 首页（前台目录页 / 后台管理台） |
+| `/app/:id` | ✓ | — | 应用详情页（由前端按 URL 中的 id 渲染） |
+| `/shared/*` | ✓ | ✓ | 共用设计层（`design.css`、`ui.js`），缓存 1 小时 |
+| `/uploads/icons/*`、`/uploads/screenshots/*` | ✓ | ✓ | 图片资源，公开只读 |
+| `/uploads/packages/*` | ✗ `404` | ✓ | 包体不公开直链，前台只能走下载接口 |
 
 ---
 
@@ -137,6 +186,20 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 ---
 
 ## 二、后台接口（管理端口 8081）
+
+### GET /api / GET /api/health
+
+服务自检，返回服务名、角色与全部已注册端点，便于快速确认服务是否在线。
+
+```json
+{
+  "ok": true,
+  "service": "开心软件市场",
+  "role": "admin",
+  "time": "2026-10-11T05:00:00.000Z",
+  "endpoints": ["GET /api/overview", "GET /api/settings", "PUT /api/settings", "..."]
+}
+```
 
 ### GET /api/overview
 
@@ -254,6 +317,10 @@ curl -X POST http://localhost:8081/api/apps \
 ### PUT /api/apps/:id
 
 更新元数据，字段与新建一致，**只传需要改动的字段**，未传字段保持不变。`name` 若传空字符串会被拒绝（`400`）。`icon` 字段仅接受空字符串（用于清空图标），图标文件的增删由上传接口负责。
+
+### PATCH /api/apps/:id
+
+与 `PUT` 完全等价，两者指向同一处理逻辑，按语义选择即可（`PATCH` 表达局部更新）。
 
 ### DELETE /api/apps/:id
 

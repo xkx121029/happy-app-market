@@ -15,7 +15,7 @@ const DEFAULTS = {
   statAppsLabel: '在架应用',
   statDownloadsLabel: '累计下载',
   footerNote: '下载前请核对版本与体积',
-  accentColor: '#d2401c',
+  accentColor: '#2f6f9f',
   publicPort: 8080,
   adminPort: 8081,
   host: '0.0.0.0',

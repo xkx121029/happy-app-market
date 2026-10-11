@@ -64,8 +64,8 @@ void main() {
   float d = length(p - ptr);
   float glow = smoothstep(0.85, 0.0, d) * (0.20 + u_ptrAmp * 0.60);
 
-  vec3 ink  = vec3(0.086, 0.082, 0.059);
-  vec3 deep = vec3(0.170, 0.098, 0.062);
+  vec3 ink  = vec3(0.098, 0.106, 0.118);
+  vec3 deep = vec3(0.145, 0.170, 0.205);
   vec3 red  = u_accent;
   vec3 hot  = mix(u_accent, vec3(1.0), 0.45);
 
@@ -137,7 +137,7 @@ export function mountLiquid(canvas) {
   const uAmp = gl.getUniformLocation(program, 'u_ptrAmp');
   const uAccent = gl.getUniformLocation(program, 'u_accent');
 
-  const DEFAULT_ACCENT = [0.824, 0.251, 0.11];
+  const DEFAULT_ACCENT = [0.184, 0.435, 0.624];
   let accent = currentAccent(DEFAULT_ACCENT);
 
   const pointer = { x: 0.5, y: 0.62, tx: 0.5, ty: 0.62, amp: 0, targetAmp: 0 };

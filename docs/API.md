@@ -127,7 +127,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
   "statAppsLabel": "在架应用",
   "statDownloadsLabel": "累计下载",
   "footerNote": "下载前请核对版本与体积",
-  "accentColor": "#d2401c",
+  "accentColor": "#2f6f9f",
   "pageSize": 12
 }
 ```
@@ -170,10 +170,10 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
     "statAppsLabel": "在架应用",
     "statDownloadsLabel": "累计下载",
     "footerNote": "下载前请核对版本与体积",
-    "accentColor": "#d2401c",
+    "accentColor": "#2f6f9f",
     "defaultPageSize": "12"
   },
-  "defaults": { "siteName": "开心软件市场", "accentColor": "#d2401c" }
+  "defaults": { "siteName": "开心软件市场", "accentColor": "#2f6f9f" }
 }
 ```
 
@@ -207,7 +207,7 @@ curl -X PUT http://localhost:8081/api/settings \
 把所有站点设置恢复为默认值。
 
 ```json
-{ "ok": true, "settings": { "siteName": "开心软件市场", "accentColor": "#d2401c" } }
+{ "ok": true, "settings": { "siteName": "开心软件市场", "accentColor": "#2f6f9f" } }
 ```
 
 ### GET /api/apps

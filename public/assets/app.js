@@ -6,12 +6,18 @@ import {
   formatCount,
   formatDate,
   setText,
-  applySiteSettings
+  applySiteSettings,
+  initTheme,
+  toggleTheme
 } from '/shared/ui.js';
 
 const root = document.getElementById('sheet-root');
 document.getElementById('build-stamp').textContent =
   `BUILD ${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}`;
+
+// 明暗主题：内联脚本已先行设置 data-theme，这里只负责补强调色与绑定切换
+initTheme();
+document.getElementById('theme-toggle')?.addEventListener('click', () => toggleTheme());
 
 const id = (location.pathname.match(/\/app\/(\d+)/) || [])[1];
 let siteName = '开心软件市场';

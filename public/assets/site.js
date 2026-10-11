@@ -8,7 +8,9 @@ import {
   skeletonRows,
   setText,
   applySiteSettings,
-  debounce
+  debounce,
+  initTheme,
+  toggleTheme
 } from '/shared/ui.js';
 
 const state = { q: '', category: '', sort: 'latest', page: 1, pageSize: 12 };
@@ -22,9 +24,14 @@ const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
 const inputEl = document.getElementById('q');
 const sortbarEl = document.getElementById('sortbar');
+const suggestEl = document.getElementById('suggest');
 
 document.getElementById('build-stamp').textContent =
   `BUILD ${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}`;
+
+// 明暗主题：内联脚本已先行设置 data-theme，这里只负责补强调色与绑定切换
+initTheme();
+document.getElementById('theme-toggle')?.addEventListener('click', () => toggleTheme());
 
 /** 读取 URL 参数作为初始筛选条件，便于分享链接 */
 function readUrl() {
@@ -173,6 +180,106 @@ inputEl.addEventListener(
     refresh();
   })
 );
+
+/* ============================== 搜索联想与快捷键 ============================== */
+
+let suggestItems = [];
+let activeIndex = -1;
+
+function closeSuggest() {
+  suggestEl.hidden = true;
+  suggestEl.innerHTML = '';
+  inputEl.setAttribute('aria-expanded', 'false');
+  suggestItems = [];
+  activeIndex = -1;
+}
+
+function renderSuggest(items) {
+  if (!items.length) {
+    suggestEl.innerHTML = '<p class="suggest__empty">没有匹配的应用</p>';
+  } else {
+    suggestEl.innerHTML = items
+      .map(
+        (app, index) => `
+        <button class="suggest__item" type="button" role="option" data-id="${app.id}" data-index="${index}">
+          <span class="suggest__name">${escapeHtml(app.name)}</span>
+          <span class="suggest__meta">${escapeHtml(app.category || '未分类')}${
+            app.version ? ' · v' + escapeHtml(app.version) : ''
+          }</span>
+        </button>`
+      )
+      .join('');
+  }
+  suggestEl.hidden = false;
+  inputEl.setAttribute('aria-expanded', 'true');
+  suggestItems = items;
+  activeIndex = -1;
+}
+
+function highlight(next) {
+  const nodes = suggestEl.querySelectorAll('.suggest__item');
+  if (!nodes.length) return;
+  activeIndex = (next + nodes.length) % nodes.length;
+  nodes.forEach((node, index) => node.classList.toggle('is-active', index === activeIndex));
+  nodes[activeIndex].scrollIntoView({ block: 'nearest' });
+}
+
+const fetchSuggest = debounce(async () => {
+  const q = inputEl.value.trim();
+  if (!q) return closeSuggest();
+  try {
+    const data = await api(`/api/apps?${new URLSearchParams({ q, pageSize: '6', sort: 'downloads' })}`);
+    if (inputEl.value.trim() !== q) return; // 请求期间输入已变，丢弃旧结果
+    renderSuggest(data.items);
+  } catch {
+    closeSuggest();
+  }
+}, 180);
+
+inputEl.addEventListener('input', fetchSuggest);
+
+inputEl.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowDown' && !suggestEl.hidden) {
+    event.preventDefault();
+    highlight(activeIndex + 1);
+  } else if (event.key === 'ArrowUp' && !suggestEl.hidden) {
+    event.preventDefault();
+    highlight(activeIndex - 1);
+  } else if (event.key === 'Enter' && activeIndex >= 0 && suggestItems[activeIndex]) {
+    event.preventDefault();
+    location.href = `/app/${suggestItems[activeIndex].id}`;
+  } else if (event.key === 'Escape') {
+    if (inputEl.value) {
+      inputEl.value = '';
+      state.q = '';
+      state.page = 1;
+      refresh();
+    }
+    closeSuggest();
+  }
+});
+
+// 用 mousedown 而非 click，避免输入框先失焦导致候选框提前关闭
+suggestEl.addEventListener('mousedown', (event) => {
+  const item = event.target.closest('.suggest__item');
+  if (!item) return;
+  event.preventDefault();
+  location.href = `/app/${item.dataset.id}`;
+});
+
+document.addEventListener('mousedown', (event) => {
+  if (!event.target.closest('.searchbar__box')) closeSuggest();
+});
+
+// 按 / 聚焦搜索框（正在输入时不触发）
+document.addEventListener('keydown', (event) => {
+  if (event.key !== '/') return;
+  const tag = (event.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || event.target.isContentEditable) return;
+  event.preventDefault();
+  inputEl.focus();
+  inputEl.select();
+});
 
 sortbarEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button[data-sort]');

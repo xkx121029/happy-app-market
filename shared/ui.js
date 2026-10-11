@@ -94,7 +94,8 @@ export function heroTitleHtml(raw) {
 
 /** 把后台保存的站点设置应用到当前页面 */
 export function applySiteSettings(site = {}) {
-  if (site.accentColor) document.documentElement.style.setProperty('--accent', site.accentColor);
+  if (site.accentColor) accentBase = site.accentColor;
+  applyAccent();
   setText('[data-site-name]', site.siteName || '');
   setText('[data-site-slogan]', site.slogan || '');
   setText('[data-hero-kicker]', site.heroKicker || '');
@@ -104,6 +105,72 @@ export function applySiteSettings(site = {}) {
   setText('[data-footer-note]', site.footerNote || '');
   const title = document.querySelector('[data-hero-title]');
   if (title) title.innerHTML = heroTitleHtml(site.heroTitle || '');
+}
+
+/* ============================== 明暗主题 ============================== */
+
+const THEME_KEY = 'kx-theme';
+let accentBase = '#2f6f9f';
+
+function clampByte(n) {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+/** 把颜色朝白（amount>0）或黑（amount<0）方向混合，amount 取 0~1 */
+function shiftHex(hex, amount) {
+  const match = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!match) return hex;
+  const n = parseInt(match[1], 16);
+  const to = amount >= 0 ? 255 : 0;
+  const k = Math.abs(amount);
+  const mix = (channel) => clampByte(channel + (to - channel) * k);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+export function currentTheme() {
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+}
+
+/** 依据当前主题把强调色写到根节点；深色下自动提亮，保证可读 */
+export function applyAccent() {
+  const dark = currentTheme() === 'dark';
+  const accent = dark ? shiftHex(accentBase, 0.32) : accentBase;
+  document.documentElement.style.setProperty('--accent', accent);
+}
+
+export function setTheme(theme) {
+  const next = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch {
+    /* 隐私模式下忽略写入失败 */
+  }
+  applyAccent();
+  return next;
+}
+
+export function toggleTheme() {
+  return setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+}
+
+/** 页面启动时同步一次；首次访问跟随系统偏好 */
+export function initTheme() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(THEME_KEY);
+  } catch {
+    /* 忽略 */
+  }
+  if (!stored) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+  }
+  applyAccent();
+  return currentTheme();
 }
 
 export function debounce(fn, delay = 260) {

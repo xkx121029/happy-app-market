@@ -239,7 +239,7 @@ function pkgSlot() {
     ? `<div class="upload__name">${escapeHtml(name)}</div><div class="upload__meta">${
         size ? humanSize(size) : '大小未知'
       }${pendingPkg ? ' · 保存后自动上传' : ' · 已上架供下载'}</div>`
-    : '<div class="upload__name">尚未上传包体</div><div class="upload__meta">支持 APK / IPA / EXE / ZIP 等任意格式</div>';
+    : '<div class="upload__name">尚未上传包体</div><div class="upload__meta">支持 APK / IPA / EXE / ZIP 等任意格式 · 选 APK 自动提取名称、版本与图标</div>';
 
   slot.innerHTML = `
     <div class="upload__info">${info}</div>
@@ -358,6 +358,22 @@ async function handlePkg(files) {
   const file = files[0];
   if (!currentApp) {
     pendingPkg = file;
+    // 新应用：先把 APK 里的名称、版本、包名与图标读出来回填表单
+    if (/\.apk$/i.test(file.name)) {
+      try {
+        setProgress('正在读取 APK 信息…');
+        const data = await uploadFile('/api/apk/inspect', file, (p) =>
+          setProgress(`正在读取 APK 信息… ${Math.round(p * 100)}%`)
+        );
+        setProgress('');
+        const applied = fillFormFromApk(data.apk);
+        if (applied.length) toast(`已从 APK 提取：${applied.join('、')}`);
+        else toast('APK 信息读取完成');
+      } catch (err) {
+        setProgress('');
+        toast(err.message, 'err');
+      }
+    }
     pkgSlot();
     return;
   }
@@ -371,13 +387,69 @@ async function handlePkg(files) {
     if (button) button.classList.remove('busy');
     setProgress('');
     pkgSlot();
-    toast('包体已更新');
+    if (data.apk?.applied?.length) {
+      syncFormFromApk(data.app, data.apk.applied);
+      toast(`已自动提取：${data.apk.applied.map((key) => APK_FIELD_LABEL[key]).join('、')}`);
+    } else {
+      toast('包体已更新');
+    }
   } catch (err) {
     const button = overlayEl.querySelector('[data-act="pick-pkg"]');
     if (button) button.classList.remove('busy');
     setProgress('');
     toast(err.message, 'err');
   }
+}
+
+/** 提取字段的中文名，用于提示 */
+const APK_FIELD_LABEL = {
+  name: '应用名',
+  version: '版本号',
+  package_name: '包名',
+  icon: '图标'
+};
+
+/** 新建应用：用 APK 提取结果填充空着的表单字段，图标转成待上传文件，返回本次填上的项 */
+function fillFormFromApk(apk) {
+  const applied = [];
+  if (!apk) return applied;
+  const fill = (selector, value, label) => {
+    const el = overlayEl?.querySelector(selector);
+    if (el && !el.value.trim() && value) {
+      el.value = value;
+      applied.push(label);
+    }
+  };
+  fill('#f-name', apk.name, '应用名');
+  fill('#f-version', apk.version, '版本号');
+  fill('#f-package', apk.package, '包名');
+
+  if (apk.icon?.base64 && !pendingIcon) {
+    try {
+      const raw = atob(apk.icon.base64);
+      const bytes = Uint8Array.from(raw, (ch) => ch.charCodeAt(0));
+      pendingIcon = new File([bytes], `apk-icon${apk.icon.ext || '.png'}`, {
+        type: apk.icon.mime || 'image/png'
+      });
+      iconSlot();
+      applied.push('图标');
+    } catch {
+      /* 图标拿不到就留空 */
+    }
+  }
+  return applied;
+}
+
+/** 编辑已有应用：上传包体后把服务端回填的字段同步到表单 */
+function syncFormFromApk(app, applied = []) {
+  const set = (selector, value) => {
+    const el = overlayEl?.querySelector(selector);
+    if (el && value) el.value = value;
+  };
+  set('#f-version', app.version);
+  set('#f-package', app.package_name);
+  if (applied.includes('name')) set('#f-name', app.name);
+  if (applied.includes('icon')) iconSlot();
 }
 
 function closeEditor() {

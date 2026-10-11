@@ -62,8 +62,9 @@
 | `PATCH` | `/api/apps/:id` | 同上，语义为局部更新 |
 | `DELETE` | `/api/apps/:id` | 删除应用并清理磁盘文件 |
 | `POST` | `/api/apps/:id/status` | 上架 / 下架 |
-| `POST` | `/api/apps/:id/package` | 上传应用包体 |
+| `POST` | `/api/apps/:id/package` | 上传应用包体（APK 会自动提取元数据） |
 | `DELETE` | `/api/apps/:id/package` | 移除包体 |
+| `POST` | `/api/apk/inspect` | 解析 APK 元数据，不落库 |
 | `GET` | `/api/apps/:id/download` | 后台下载包体（上架前自测） |
 | `POST` | `/api/apps/:id/icon` | 上传应用图标 |
 | `POST` | `/api/apps/:id/screenshots` | 追加一张应用截图 |
@@ -353,6 +354,24 @@ x-file-name: %E5%BC%80%E5%BF%83%E7%AC%94%E8%AE%B0-1.2.0.apk
 
 - 上传上限由 `config.json` 的 `maxUploadMB` 控制，超出会中断连接并返回错误。
 - 重复上传会替换旧包体，并删除磁盘上的旧文件。
+- 上传的是 `.apk` 时会解析清单并自动回填，响应里多一个 `apk` 字段；解析失败时该字段为 `null`，不影响上传本身。
+
+```json
+{
+  "ok": true,
+  "app": { "id": 1, "name": "开心笔记", "version": "1.2.0", "package_name": "com.kxkj.notes", "...": "..." },
+  "apk": {
+    "name": "开心笔记",
+    "version": "1.2.0",
+    "versionCode": 12,
+    "package": "com.kxkj.notes",
+    "hasIcon": true,
+    "applied": ["version", "package_name", "icon"]
+  }
+}
+```
+
+`applied` 是本次真正写进记录的字段：`version` 与 `package_name` 以 APK 为准直接同步，`name` 只在为空时补上，`icon` 只在应用还没有图标时写入（图标存到 `/uploads/icons/`）。合法取值：`name`、`version`、`package_name`、`icon`。
 
 ```bash
 curl -X POST http://localhost:8081/api/apps/1/package \
@@ -364,6 +383,28 @@ curl -X POST http://localhost:8081/api/apps/1/package \
 ### DELETE /api/apps/:id/package
 
 移除包体，记录保留但回到「未上传」状态。
+
+### POST /api/apk/inspect
+
+只解析不落库：请求体是一个 APK，返回从清单与资源表里读出的元数据，供新建应用时回填表单。
+
+- 请求体同样是**文件二进制**，文件名放在 `x-file-name` 头。
+- 解析失败返回 `400` 与中文错误说明。
+
+```json
+{
+  "ok": true,
+  "apk": {
+    "name": "开心笔记",
+    "version": "1.2.0",
+    "versionCode": 12,
+    "package": "com.kxkj.notes",
+    "icon": { "ext": ".png", "mime": "image/png", "base64": "iVBORw0KGgo..." }
+  }
+}
+```
+
+名称、版本、包名可能取不到，对应字段为空字符串；图标取不到时 `icon` 为 `null`。
 
 ### GET /api/apps/:id/download
 

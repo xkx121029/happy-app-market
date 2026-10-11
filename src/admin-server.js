@@ -1,5 +1,6 @@
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {
   DIRS,
@@ -9,7 +10,8 @@ import {
   SETTING_KEYS,
   SETTING_DEFAULTS
 } from './config.js';
-import { json, fail, readJson, saveStream, pickFileName, uniqueName, safeJoin, serveFile, str } from './util.js';
+import { json, fail, readJson, saveStream, pickFileName, uniqueName, safeJoin, serveFile, str, mimeOf } from './util.js';
+import { readApkMeta } from './apkmeta.js';
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.bmp']);
 
@@ -71,6 +73,7 @@ export function createAdminServer(store) {
     { method: 'POST', pattern: /^\/api\/apps\/(\d+)\/status$/, handler: adminSetStatus },
     { method: 'POST', pattern: /^\/api\/apps\/(\d+)\/package$/, handler: adminUploadPackage },
     { method: 'DELETE', pattern: /^\/api\/apps\/(\d+)\/package$/, handler: adminDeletePackage },
+    { method: 'POST', pattern: /^\/api\/apk\/inspect$/, handler: adminInspectApk },
     { method: 'GET', pattern: /^\/api\/apps\/(\d+)\/download$/, handler: adminDownload },
     { method: 'POST', pattern: /^\/api\/apps\/(\d+)\/icon$/, handler: adminUploadIcon },
     { method: 'POST', pattern: /^\/api\/apps\/(\d+)\/screenshots$/, handler: adminUploadScreenshot },
@@ -305,9 +308,90 @@ async function adminUploadPackage(req, res, { store, params }) {
 
   // 替换包体时删除旧文件，避免磁盘堆积
   const oldAbs = app.package_path ? path.join(DIRS.packages, path.basename(app.package_path)) : null;
-  const updated = store.setPackage(params[0], { path: `/uploads/packages/${stored}`, file: original, size });
+  let updated = store.setPackage(params[0], { path: `/uploads/packages/${stored}`, file: original, size });
   if (oldAbs && path.basename(oldAbs) !== stored) await removeQuiet(oldAbs);
-  return json(res, 200, { ok: true, app: updated });
+
+  // APK 额外提取名称、版本号、包名与图标，能填的自动补上
+  const apk = path.extname(original).toLowerCase() === '.apk' ? await applyApkMeta(store, updated, abs) : null;
+  if (apk) {
+    updated = apk.app;
+    delete apk.app; // app 已在外层返回，避免响应里重复一份
+  }
+  return json(res, 200, { ok: true, app: updated, apk });
+}
+
+/**
+ * 解析已落盘的 APK，把提取结果写回应用记录：
+ * 版本号与包名以 APK 为准直接同步，应用名与图标只在为空时补上，
+ * 避免覆盖后台手工填写的内容。解析失败静默返回 null，不影响上传。
+ */
+async function applyApkMeta(store, app, absPath) {
+  const meta = await readApkMeta(absPath);
+  if (!meta) return null;
+
+  const applied = [];
+  const patch = {};
+  if (meta.version && meta.version !== app.version) {
+    patch.version = meta.version;
+    applied.push('version');
+  }
+  if (meta.package && meta.package !== app.package_name) {
+    patch.package_name = meta.package;
+    applied.push('package_name');
+  }
+  if (!app.name && meta.name) {
+    patch.name = meta.name;
+    applied.push('name');
+  }
+  if (!app.icon && meta.icon?.buffer?.length) {
+    const iconStored = uniqueName(`apk-icon${meta.icon.ext}`);
+    await fs.promises.writeFile(path.join(DIRS.icons, iconStored), meta.icon.buffer);
+    patch.icon = `/uploads/icons/${iconStored}`;
+    applied.push('icon');
+  }
+
+  const updated = applied.length ? store.update(app.id, patch) : app;
+  return {
+    name: meta.name,
+    version: meta.version,
+    versionCode: meta.versionCode,
+    package: meta.package,
+    hasIcon: Boolean(meta.icon),
+    applied,
+    app: updated
+  };
+}
+
+/** 新建应用前的 APK 预读：只解析不落库，供前端回填表单 */
+async function adminInspectApk(req, res) {
+  const original = pickFileName(req, '.apk');
+  const tmp = path.join(os.tmpdir(), `kx-apk-${uniqueName(original)}`);
+  try {
+    const size = await saveStream(req, tmp, MAX_UPLOAD_BYTES);
+    if (!size) return fail(res, 400, '文件为空');
+    const meta = await readApkMeta(tmp);
+    if (!meta) return fail(res, 400, '无法解析该 APK，请确认文件完整后重试');
+    return json(res, 200, {
+      ok: true,
+      apk: {
+        name: meta.name,
+        version: meta.version,
+        versionCode: meta.versionCode,
+        package: meta.package,
+        icon: meta.icon?.buffer?.length
+          ? {
+              ext: meta.icon.ext,
+              mime: mimeOf(`icon${meta.icon.ext}`),
+              base64: meta.icon.buffer.toString('base64')
+            }
+          : null
+      }
+    });
+  } catch (err) {
+    return fail(res, 400, err?.message || 'APK 解析失败');
+  } finally {
+    await removeQuiet(tmp);
+  }
 }
 
 async function adminDeletePackage(req, res, { store, params }) {

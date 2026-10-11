@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS apps (
 );
 CREATE INDEX IF NOT EXISTS idx_apps_status ON apps(status);
 CREATE INDEX IF NOT EXISTS idx_apps_category ON apps(category);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL DEFAULT ''
+);
 `;
 
 /** 数据库字段白名单：可由接口写入的字段 */
@@ -297,5 +302,22 @@ export class MarketStore {
       )
       .get();
     return { total: Number(row.total) || 0, downloads: Number(row.downloads) || 0 };
+  }
+
+  /** 读取全部站点设置（只含数据库里存过的项） */
+  settings() {
+    const rows = this.db.prepare('SELECT key, value FROM settings').all();
+    const out = {};
+    for (const row of rows) out[row.key] = row.value;
+    return out;
+  }
+
+  /** 写入站点设置，逐项覆盖 */
+  saveSettings(patch = {}) {
+    const stmt = this.db.prepare(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+    );
+    for (const [key, value] of Object.entries(patch)) stmt.run(String(key), String(value ?? ''));
+    return this.settings();
   }
 }

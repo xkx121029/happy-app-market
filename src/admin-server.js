@@ -1,7 +1,14 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DIRS, MAX_UPLOAD_BYTES, config } from './config.js';
+import {
+  DIRS,
+  MAX_UPLOAD_BYTES,
+  config,
+  mergeSettings,
+  SETTING_KEYS,
+  SETTING_DEFAULTS
+} from './config.js';
 import { json, fail, readJson, saveStream, pickFileName, uniqueName, safeJoin, serveFile, str } from './util.js';
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.bmp']);
@@ -52,6 +59,9 @@ function cleanOpenSourceUrls(value) {
 export function createAdminServer(store) {
   const routes = [
     { method: 'GET', pattern: /^\/api\/overview$/, handler: adminOverview },
+    { method: 'GET', pattern: /^\/api\/settings$/, handler: adminGetSettings },
+    { method: 'PUT', pattern: /^\/api\/settings$/, handler: adminUpdateSettings },
+    { method: 'POST', pattern: /^\/api\/settings\/reset$/, handler: adminResetSettings },
     { method: 'GET', pattern: /^\/api\/apps$/, handler: adminListApps },
     { method: 'POST', pattern: /^\/api\/apps$/, handler: adminCreateApp },
     { method: 'GET', pattern: /^\/api\/apps\/(\d+)$/, handler: adminGetApp },
@@ -139,11 +149,66 @@ export function createAdminServer(store) {
 async function adminOverview(req, res, { store }) {
   return json(res, 200, {
     ok: true,
-    siteName: config.siteName,
+    siteName: mergeSettings(store.settings()).siteName,
     ports: { public: config.publicPort, admin: config.adminPort },
     stats: store.stats(),
     categories: store.categories()
   });
+}
+
+/* ------------------------------ 站点设置 ------------------------------ */
+
+/** 各文本设置项的最大长度，防止写入超长内容 */
+const SETTING_MAX = {
+  siteName: 60,
+  siteSlogan: 120,
+  heroKicker: 60,
+  heroTitle: 120,
+  heroSubtitle: 200,
+  statAppsLabel: 20,
+  statDownloadsLabel: 20,
+  footerNote: 120
+};
+
+async function adminGetSettings(req, res, { store }) {
+  return json(res, 200, {
+    ok: true,
+    settings: mergeSettings(store.settings()),
+    defaults: SETTING_DEFAULTS
+  });
+}
+
+async function adminUpdateSettings(req, res, { store }) {
+  const body = await readJson(req);
+  const patch = {};
+  for (const key of SETTING_KEYS) {
+    if (body[key] === undefined) continue;
+
+    if (key === 'accentColor') {
+      const color = str(body.accentColor, 20).toLowerCase();
+      if (!/^#[0-9a-f]{6}$/.test(color)) return fail(res, 400, '强调色需要是 #RRGGBB 形式的十六进制颜色');
+      patch.accentColor = color;
+      continue;
+    }
+
+    if (key === 'defaultPageSize') {
+      const size = Number(body.defaultPageSize);
+      if (!Number.isFinite(size) || size < 1 || size > 100) return fail(res, 400, '每页条数需要在 1 到 100 之间');
+      patch.defaultPageSize = String(Math.round(size));
+      continue;
+    }
+
+    const value = str(body[key], SETTING_MAX[key] || 120).trim();
+    if (key === 'siteName' && !value) return fail(res, 400, '站点名称不能为空');
+    patch[key] = value;
+  }
+  store.saveSettings(patch);
+  return json(res, 200, { ok: true, settings: mergeSettings(store.settings()) });
+}
+
+async function adminResetSettings(req, res, { store }) {
+  store.saveSettings(SETTING_DEFAULTS);
+  return json(res, 200, { ok: true, settings: mergeSettings(store.settings()) });
 }
 
 async function adminListApps(req, res, { store, query }) {

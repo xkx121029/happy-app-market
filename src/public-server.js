@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DIRS, config } from './config.js';
+import { DIRS, mergeSettings } from './config.js';
 import { json, fail, safeJoin, serveFile, str } from './util.js';
 
 /** 前台服务：面向访客，只暴露已上架应用 */
@@ -13,12 +13,13 @@ export function createPublicServer(store) {
     try {
       // 前台接口
       if (pathname === '/api/apps') {
+        const settings = mergeSettings(store.settings());
         const data = store.listPublished({
           q: str(url.searchParams.get('q'), 100),
           category: str(url.searchParams.get('category'), 60),
           sort: str(url.searchParams.get('sort'), 20) || 'latest',
           page: Number(url.searchParams.get('page')) || 1,
-          pageSize: Number(url.searchParams.get('pageSize')) || config.defaultPageSize
+          pageSize: Number(url.searchParams.get('pageSize')) || Number(settings.defaultPageSize) || 12
         });
         return json(res, 200, { ok: true, ...data });
       }
@@ -55,7 +56,20 @@ export function createPublicServer(store) {
       }
 
       if (pathname === '/api/site') {
-        return json(res, 200, { ok: true, siteName: config.siteName, slogan: config.siteSlogan });
+        const settings = mergeSettings(store.settings());
+        return json(res, 200, {
+          ok: true,
+          siteName: settings.siteName,
+          slogan: settings.siteSlogan,
+          heroKicker: settings.heroKicker,
+          heroTitle: settings.heroTitle,
+          heroSubtitle: settings.heroSubtitle,
+          statAppsLabel: settings.statAppsLabel,
+          statDownloadsLabel: settings.statDownloadsLabel,
+          footerNote: settings.footerNote,
+          accentColor: settings.accentColor,
+          pageSize: Number(settings.defaultPageSize) || 12
+        });
       }
 
       if (pathname.startsWith('/api/')) return fail(res, 404, '接口不存在');

@@ -94,6 +94,8 @@ async function loadOverview() {
     const host = location.hostname;
     document.getElementById('rail-public').textContent = `${host}:${data.ports.public}`;
     document.getElementById('rail-admin').textContent = `${host}:${data.ports.admin}`;
+    const railTitle = document.querySelector('.rail__title');
+    if (railTitle) railTitle.textContent = data.siteName;
     document.title = `管理台 · ${data.siteName}`;
   } catch (err) {
     toast(`概览加载失败：${err.message}`, 'err');
@@ -699,6 +701,113 @@ statusEl.addEventListener('change', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && overlayEl) closeEditor();
+});
+
+/* ============================== 站点设置 ============================== */
+
+const mainEl = document.getElementById('main');
+const tabsEl = document.getElementById('view-tabs');
+const topbarTitle = document.getElementById('topbar-title');
+const settingsView = document.getElementById('settings-view');
+const boardCount = document.getElementById('board-count');
+
+/** 设置项与表单控件的对应关系 */
+const SETTING_FIELDS = {
+  siteName: '#s-siteName',
+  siteSlogan: '#s-siteSlogan',
+  heroKicker: '#s-heroKicker',
+  heroTitle: '#s-heroTitle',
+  heroSubtitle: '#s-heroSubtitle',
+  statAppsLabel: '#s-statAppsLabel',
+  statDownloadsLabel: '#s-statDownloadsLabel',
+  accentColor: '#s-accentColor',
+  defaultPageSize: '#s-defaultPageSize',
+  footerNote: '#s-footerNote'
+};
+
+function fillSettings(settings = {}) {
+  for (const [key, selector] of Object.entries(SETTING_FIELDS)) {
+    const node = document.querySelector(selector);
+    if (node) node.value = settings[key] ?? '';
+  }
+  document.getElementById('s-accent-value').textContent = settings.accentColor || '';
+}
+
+async function loadSettings() {
+  try {
+    const data = await api('/api/settings');
+    fillSettings(data.settings);
+  } catch (err) {
+    toast(`站点设置载入失败：${err.message}`, 'err');
+  }
+}
+
+function collectSettings() {
+  const out = {};
+  for (const [key, selector] of Object.entries(SETTING_FIELDS)) {
+    const node = document.querySelector(selector);
+    if (node) out[key] = node.value;
+  }
+  return out;
+}
+
+async function saveSettings() {
+  const button = document.getElementById('settings-save');
+  button.disabled = true;
+  try {
+    const data = await api('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectSettings())
+    });
+    fillSettings(data.settings);
+    await loadOverview();
+    toast('站点设置已保存，前台刷新即可看到');
+  } catch (err) {
+    toast(err.message, 'err');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function resetSettings() {
+  const ok = await confirmDialog({
+    title: '恢复默认设置？',
+    body: '站点文案、首屏文字与强调色都会回到初始值，已上架的应用不受影响。',
+    confirmText: '恢复默认'
+  });
+  if (!ok) return;
+  try {
+    const data = await api('/api/settings/reset', { method: 'POST' });
+    fillSettings(data.settings);
+    await loadOverview();
+    toast('已恢复默认设置');
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+function switchView(view) {
+  const isSettings = view === 'settings';
+  mainEl.classList.toggle('is-settings', isSettings);
+  settingsView.hidden = !isSettings;
+  boardCount.hidden = isSettings;
+  topbarTitle.firstChild.textContent = isSettings ? '站点设置' : '应用管理';
+  tabsEl.querySelectorAll('button').forEach((node) => {
+    node.setAttribute('aria-pressed', String(node.dataset.view === view));
+  });
+  if (isSettings) loadSettings();
+}
+
+tabsEl.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-view]');
+  if (button) switchView(button.dataset.view);
+});
+
+document.getElementById('settings-save').addEventListener('click', saveSettings);
+document.getElementById('settings-reset').addEventListener('click', resetSettings);
+document.getElementById('s-accentColor').addEventListener('input', (event) => {
+  document.getElementById('s-accent-value').textContent = event.target.value;
 });
 
 loadOverview();

@@ -28,10 +28,26 @@
       </div>
     </header>
 
-    <section class="nameplate">
-      <div class="wrap nameplate__inner">
-        <h1 class="nameplate__title">自己写的软件，都放在这儿</h1>
-        <p class="nameplate__desc">看中哪个点进去，直接下载安装包。</p>
+    <section class="hero">
+      <canvas class="hero__canvas" id="liquid" aria-hidden="true"></canvas>
+      <div class="hero__veil" aria-hidden="true"></div>
+      <div class="hero__grid" aria-hidden="true"></div>
+      <div class="wrap hero__inner">
+        <div class="rise" style="--i: 0">
+          <p class="hero__kicker" data-hero-kicker>自己写的软件</p>
+          <h1 class="hero__title" data-hero-title>挑一个<br /><em>趁手</em>的软件</h1>
+          <p class="hero__sub" data-hero-sub>看中哪个点进去，直接下载安装包。</p>
+        </div>
+        <dl class="hero__stats rise" style="--i: 1">
+          <div class="hero__stat">
+            <dt data-stat-apps-label>在架应用</dt>
+            <dd data-stat-total>—<span>款</span></dd>
+          </div>
+          <div class="hero__stat">
+            <dt data-stat-downloads-label>累计下载</dt>
+            <dd data-stat-downloads>—<span>次</span></dd>
+          </div>
+        </dl>
       </div>
     </section>
 
@@ -87,11 +103,12 @@
     <footer class="footer">
       <div class="wrap footer__inner">
         <span data-site-name>开心软件市场</span>
-        <span>下载前请核对版本与体积</span>
+        <span data-footer-note>下载前请核对版本与体积</span>
         <span id="build-stamp"></span>
       </div>
     </footer>
 
+    <script type="module" src="/assets/liquid.js"></script>
     <script type="module" src="/assets/site.js"></script>
   </body>
 </html>

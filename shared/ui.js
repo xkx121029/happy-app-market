@@ -82,6 +82,30 @@ export function setText(selector, text) {
   });
 }
 
+/**
+ * 首屏标题允许两种轻量写法：回车换行、用 *星号* 包住要强调的词。
+ * 其余内容一律先转义，避免自定义文案把标签带进页面。
+ */
+export function heroTitleHtml(raw) {
+  return escapeHtml(raw)
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br />');
+}
+
+/** 把后台保存的站点设置应用到当前页面 */
+export function applySiteSettings(site = {}) {
+  if (site.accentColor) document.documentElement.style.setProperty('--accent', site.accentColor);
+  setText('[data-site-name]', site.siteName || '');
+  setText('[data-site-slogan]', site.slogan || '');
+  setText('[data-hero-kicker]', site.heroKicker || '');
+  setText('[data-hero-sub]', site.heroSubtitle || '');
+  setText('[data-stat-apps-label]', site.statAppsLabel || '');
+  setText('[data-stat-downloads-label]', site.statDownloadsLabel || '');
+  setText('[data-footer-note]', site.footerNote || '');
+  const title = document.querySelector('[data-hero-title]');
+  if (title) title.innerHTML = heroTitleHtml(site.heroTitle || '');
+}
+
 export function debounce(fn, delay = 260) {
   let timer = null;
   return (...args) => {

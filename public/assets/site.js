@@ -7,6 +7,7 @@ import {
   escapeHtml,
   skeletonRows,
   setText,
+  applySiteSettings,
   debounce
 } from '/shared/ui.js';
 
@@ -52,8 +53,9 @@ async function loadMeta() {
     api('/api/categories')
   ]);
 
-  setText('[data-site-name]', site.siteName);
+  applySiteSettings(site);
   document.title = site.siteName;
+  state.pageSize = Number(site.pageSize) || state.pageSize;
   setText('[data-stat-total]', formatCount(stats.total));
   setText('[data-stat-downloads]', formatCount(stats.downloads));
 
@@ -197,9 +199,13 @@ nextBtn.addEventListener('click', () => {
 });
 
 readUrl();
-loadMeta().then(() => {
-  sortbarEl.querySelectorAll('button').forEach((node) => {
-    node.setAttribute('aria-pressed', String(node.dataset.sort === state.sort));
+loadMeta()
+  .catch(() => {
+    /* 站点信息拿不到也照常展示列表 */
+  })
+  .finally(() => {
+    sortbarEl.querySelectorAll('button').forEach((node) => {
+      node.setAttribute('aria-pressed', String(node.dataset.sort === state.sort));
+    });
+    loadApps();
   });
-});
-loadApps();

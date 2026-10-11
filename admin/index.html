@@ -42,25 +42,29 @@
         </div>
       </aside>
 
-      <main class="main">
+      <main class="main" id="main">
         <div class="topbar">
-          <h1 class="topbar__title">
+          <h1 class="topbar__title" id="topbar-title">
             应用管理
             <small id="board-count">正在载入…</small>
           </h1>
-          <label class="field-inline">
+          <div class="tabs" id="view-tabs">
+            <button type="button" data-view="apps" aria-pressed="true">应用</button>
+            <button type="button" data-view="settings" aria-pressed="false">站点设置</button>
+          </div>
+          <label class="field-inline apps-only">
             <span>搜索</span>
             <input type="search" id="q" placeholder="应用名 / 开发者 / 包名" autocomplete="off" />
           </label>
-          <select class="filter" id="status-filter">
+          <select class="filter apps-only" id="status-filter">
             <option value="">全部状态</option>
             <option value="1">已上架</option>
             <option value="0">未上架</option>
           </select>
-          <button class="btn btn--accent" type="button" id="create">＋ 新建应用</button>
+          <button class="btn btn--accent apps-only" type="button" id="create">＋ 新建应用</button>
         </div>
 
-        <div class="board">
+        <div class="board apps-only">
           <div class="board__head" aria-hidden="true">
             <span>序</span>
             <span>应用</span>
@@ -73,6 +77,70 @@
           </div>
           <div id="rows"></div>
         </div>
+
+        <section class="settings" id="settings-view" hidden>
+          <p class="fieldset-title">站点文案</p>
+          <div class="grid2">
+            <div class="field">
+              <label for="s-siteName">站点名称</label>
+              <input id="s-siteName" type="text" maxlength="60" />
+            </div>
+            <div class="field">
+              <label for="s-siteSlogan">站点标语</label>
+              <input id="s-siteSlogan" type="text" maxlength="120" />
+            </div>
+          </div>
+
+          <p class="fieldset-title">首屏</p>
+          <div class="field">
+            <label for="s-heroKicker">小标签</label>
+            <input id="s-heroKicker" type="text" maxlength="60" />
+          </div>
+          <div class="field">
+            <label for="s-heroTitle">大标题</label>
+            <input id="s-heroTitle" type="text" maxlength="120" />
+            <p class="field__hint">用回车换行；用 *星号* 包住想强调的词，它会变成强调色。</p>
+          </div>
+          <div class="field">
+            <label for="s-heroSubtitle">副标题</label>
+            <input id="s-heroSubtitle" type="text" maxlength="200" />
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="s-statAppsLabel">统计标签 · 上架数</label>
+              <input id="s-statAppsLabel" type="text" maxlength="20" />
+            </div>
+            <div class="field">
+              <label for="s-statDownloadsLabel">统计标签 · 下载数</label>
+              <input id="s-statDownloadsLabel" type="text" maxlength="20" />
+            </div>
+          </div>
+
+          <p class="fieldset-title">外观与列表</p>
+          <div class="grid2">
+            <div class="field">
+              <label for="s-accentColor">强调色</label>
+              <div class="swatch">
+                <input id="s-accentColor" type="color" />
+                <code id="s-accent-value">#d2401c</code>
+              </div>
+            </div>
+            <div class="field">
+              <label for="s-defaultPageSize">每页条数</label>
+              <input id="s-defaultPageSize" type="number" min="1" max="100" step="1" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="s-footerNote">页脚说明</label>
+            <input id="s-footerNote" type="text" maxlength="120" />
+          </div>
+
+          <div class="settings__foot">
+            <button class="btn btn--quiet" type="button" id="settings-reset">恢复默认</button>
+            <span class="spacer"></span>
+            <button class="btn btn--accent" type="button" id="settings-save">保存设置</button>
+          </div>
+        </section>
       </main>
     </div>
 

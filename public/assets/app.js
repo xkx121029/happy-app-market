@@ -5,7 +5,8 @@ import {
   humanSize,
   formatCount,
   formatDate,
-  setText
+  setText,
+  applySiteSettings
 } from '/shared/ui.js';
 
 const root = document.getElementById('sheet-root');
@@ -13,6 +14,7 @@ document.getElementById('build-stamp').textContent =
   `BUILD ${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}`;
 
 const id = (location.pathname.match(/\/app\/(\d+)/) || [])[1];
+let siteName = '开心软件市场';
 
 function specRow(label, value) {
   return `<div class="spec__row"><dt>${label}</dt><dd>${escapeHtml(value || '—')}</dd></div>`;
@@ -101,13 +103,14 @@ function render(app) {
       </section>
     </div>`;
 
-  document.title = `${app.name} · 开心软件市场`;
+  document.title = `${app.name} · ${siteName}`;
 }
 
 async function boot() {
   try {
     const site = await api('/api/site');
-    setText('[data-site-name]', site.siteName);
+    applySiteSettings(site);
+    siteName = site.siteName || siteName;
     const stats = await api('/api/stats');
     setText('[data-stat-total]', formatCount(stats.total));
     setText('[data-stat-downloads]', formatCount(stats.downloads));

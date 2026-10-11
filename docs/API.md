@@ -7,12 +7,12 @@
 | 前台下载站 | `8080` | `http://<host>:8080` | 访客浏览、查看详情、下载安装包 |
 | 后台管理台 | `8081` | `http://<host>:8081` | 上架 / 编辑 / 下架应用，上传包体与图片 |
 
-端口、站点名、上传上限等在项目根目录的 `config.json` 中配置，改动后重启生效。
+端口、上传上限等部署参数在项目根目录的 `config.json` 中配置，改动后重启生效。
 
 ```json
 {
   "siteName": "开心软件市场",
-  "siteSlogan": "纯净分发 · 直接下载安装包",
+  "siteSlogan": "自己写的软件都放在这里",
   "publicPort": 8080,
   "adminPort": 8081,
   "host": "0.0.0.0",
@@ -20,6 +20,8 @@
   "defaultPageSize": 12
 }
 ```
+
+站点文案、强调色、首屏内容与每页条数属于**运行时可改**的设置项，存在数据库里，在后台「站点设置」页修改即时生效，无需重启，也无需改文件（见后台 `GET/PUT /api/settings`）。`config.json` 里的同名字段只作为缺省值兜底。
 
 统一约定：
 
@@ -112,11 +114,25 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 
 ### GET /api/site
 
-站点名称与标语，取自 `config.json`。
+站点设置，供前台页面填充文案、强调色与列表分页。内容取自数据库中的设置项，未设置的项回落到 `config.json` 默认值。
 
 ```json
-{ "ok": true, "siteName": "开心软件市场", "slogan": "自己写的软件都放在这里" }
+{
+  "ok": true,
+  "siteName": "开心软件市场",
+  "slogan": "自己写的软件都放在这里",
+  "heroKicker": "自己写的软件",
+  "heroTitle": "挑一个\n*趁手*的软件",
+  "heroSubtitle": "看中哪个点进去，直接下载安装包。",
+  "statAppsLabel": "在架应用",
+  "statDownloadsLabel": "累计下载",
+  "footerNote": "下载前请核对版本与体积",
+  "accentColor": "#d2401c",
+  "pageSize": 12
+}
 ```
+
+`heroTitle` 支持两种轻量写法：`\n` 代表换行，用 `*星号*` 包住的词会渲染成强调色。
 
 ---
 
@@ -137,6 +153,62 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 ```
 
 `stats` 字段含义：`total` 应用总数、`published` 已上架、`draft` 未上架、`withPackage` 已上传包体、`downloads` 累计下载。
+
+### GET /api/settings
+
+读取全部站点设置，并附带每一项的默认值（供「恢复默认」使用）。
+
+```json
+{
+  "ok": true,
+  "settings": {
+    "siteName": "开心软件市场",
+    "siteSlogan": "自己写的软件都放在这里",
+    "heroKicker": "自己写的软件",
+    "heroTitle": "挑一个\n*趁手*的软件",
+    "heroSubtitle": "看中哪个点进去，直接下载安装包。",
+    "statAppsLabel": "在架应用",
+    "statDownloadsLabel": "累计下载",
+    "footerNote": "下载前请核对版本与体积",
+    "accentColor": "#d2401c",
+    "defaultPageSize": "12"
+  },
+  "defaults": { "siteName": "开心软件市场", "accentColor": "#d2401c" }
+}
+```
+
+### PUT /api/settings
+
+更新站点设置，**只传需要改动的字段**，未传的保持不变。校验规则：
+
+| 字段 | 说明 |
+| --- | --- |
+| `siteName` | 站点名称，不能为空，上限 60 字符 |
+| `siteSlogan` | 站点标语，上限 120 字符 |
+| `heroKicker` | 首屏小标签，上限 60 字符 |
+| `heroTitle` | 首屏大标题，上限 120 字符；支持 `\n` 换行与 `*强调*` |
+| `heroSubtitle` | 首屏副标题，上限 200 字符 |
+| `statAppsLabel` | 统计标签 · 上架数，上限 20 字符 |
+| `statDownloadsLabel` | 统计标签 · 下载数，上限 20 字符 |
+| `footerNote` | 页脚说明，上限 120 字符 |
+| `accentColor` | 强调色，需为 `#RRGGBB` 形式的十六进制颜色，非法返回 `400` |
+| `defaultPageSize` | 每页条数，1 到 100 之间的整数，非法返回 `400` |
+
+```bash
+curl -X PUT http://localhost:8081/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{"accentColor":"#2f6f4e","defaultPageSize":6}'
+```
+
+返回 `200` 与更新后的完整 `settings`。
+
+### POST /api/settings/reset
+
+把所有站点设置恢复为默认值。
+
+```json
+{ "ok": true, "settings": { "siteName": "开心软件市场", "accentColor": "#d2401c" } }
+```
 
 ### GET /api/apps
 
@@ -276,6 +348,8 @@ curl -X POST http://localhost:8081/api/apps/1/package \
 ```
 
 `/uploads/icons/*` 与 `/uploads/screenshots/*` 在两个端口都可公开读取（后台用于预览）；`/uploads/packages/*` 在前台端口被拦截，只能通过下载接口获取。
+
+数据库为单文件 SQLite，含两张表：`apps`（应用记录）与 `settings`（键值形式的站点设置，字段名以 `key` / `value` 两列存储）。
 
 ---
 

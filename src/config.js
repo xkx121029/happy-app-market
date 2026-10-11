@@ -8,13 +8,50 @@ const CONFIG_FILE = path.join(ROOT, 'config.json');
 
 const DEFAULTS = {
   siteName: '开心软件市场',
-  siteSlogan: '纯净分发 · 直接下载安装包',
+  siteSlogan: '自己写的软件都放在这里',
+  heroKicker: '自己写的软件',
+  heroTitle: '挑一个\n*趁手*的软件',
+  heroSubtitle: '看中哪个点进去，直接下载安装包。',
+  statAppsLabel: '在架应用',
+  statDownloadsLabel: '累计下载',
+  footerNote: '下载前请核对版本与体积',
+  accentColor: '#d2401c',
   publicPort: 8080,
   adminPort: 8081,
   host: '0.0.0.0',
   maxUploadMB: 800,
   defaultPageSize: 12
 };
+
+/**
+ * 可在后台「站点设置」里修改的字段。
+ * 这里只列内容项，端口、上传上限等部署参数仍留在 config.json 里。
+ */
+export const SETTING_KEYS = [
+  'siteName',
+  'siteSlogan',
+  'heroKicker',
+  'heroTitle',
+  'heroSubtitle',
+  'statAppsLabel',
+  'statDownloadsLabel',
+  'footerNote',
+  'accentColor',
+  'defaultPageSize'
+];
+
+/** 各设置项的默认值，后台可据此一键恢复 */
+export const SETTING_DEFAULTS = Object.fromEntries(SETTING_KEYS.map((key) => [key, DEFAULTS[key]]));
+
+/** 把数据库里的设置与默认值合并成一份完整设置 */
+export function mergeSettings(stored = {}) {
+  const merged = {};
+  for (const key of SETTING_KEYS) {
+    const value = stored[key];
+    merged[key] = value === undefined || value === '' ? config[key] ?? DEFAULTS[key] : value;
+  }
+  return merged;
+}
 
 function readConfig() {
   try {

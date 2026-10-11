@@ -153,6 +153,10 @@
     color: var(--ink-faint);
   }
 
+  .topbar__title small[hidden] {
+    display: none;
+  }
+
   .field-inline {
     display: flex;
     align-items: center;
@@ -180,6 +184,42 @@
     color: var(--ink-faint);
   }
 
+  /* 视图切换：应用列表 / 站点设置 */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--paper-deep);
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+  }
+
+  .tabs button {
+    padding: 7px 14px;
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: all 0.16s var(--ease);
+  }
+
+  .tabs button:hover:not([aria-pressed='true']) {
+    color: var(--ink);
+  }
+
+  .tabs button[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--paper-card);
+  }
+
+  /* 切到站点设置时隐藏应用管理相关的控件 */
+  .main.is-settings .apps-only {
+    display: none;
+  }
+
   select.filter {
     padding: 8px 10px;
     background: var(--paper-card);
@@ -195,6 +235,46 @@
 }
 
 @layer pages {
+  /* ------------------------------ 站点设置 ------------------------------ */
+  .settings {
+    max-width: 780px;
+  }
+
+  .settings__foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1.5px solid var(--ink);
+  }
+
+  .settings__foot .spacer {
+    margin-left: auto;
+  }
+
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .swatch input[type='color'] {
+    width: 58px;
+    height: 38px;
+    padding: 2px;
+    background: var(--paper-card);
+    border: 1.5px solid var(--line);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  .swatch code {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
   /* ------------------------------ 数据表 ------------------------------ */
   .board {
     border-top: 1.5px solid var(--ink);

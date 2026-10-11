@@ -10,7 +10,7 @@ const DEFAULTS = {
   siteName: '开心软件市场',
   siteSlogan: '自己写的软件都放在这里',
   heroKicker: '自己写的软件',
-  heroTitle: '挑一个\n*趁手*的软件',
+  heroTitle: '挑一个趁手的软件',
   heroSubtitle: '看中哪个点进去，直接下载安装包。',
   statAppsLabel: '在架应用',
   statDownloadsLabel: '累计下载',

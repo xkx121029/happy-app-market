@@ -36,8 +36,6 @@
           <span class="brand__name" data-site-name>开心软件市场</span>
         </a>
         <div class="masthead__meta">
-          <span>收录 <b data-stat-total>—</b></span>
-          <span>下载 <b data-stat-downloads>—</b></span>
           <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换明暗模式" title="切换明暗模式">
             <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" /></svg>
             <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" /></svg>
@@ -46,23 +44,21 @@
       </div>
     </header>
 
-    <section class="hero">
-      <canvas class="hero__canvas" id="liquid" aria-hidden="true"></canvas>
-      <div class="hero__veil" aria-hidden="true"></div>
-      <div class="wrap hero__inner">
-        <div class="rise" style="--i: 0">
-          <p class="hero__kicker" data-hero-kicker>自己写的软件</p>
-          <h1 class="hero__title" data-hero-title>挑一个<br /><em>趁手</em>的软件</h1>
-          <p class="hero__sub" data-hero-sub>看中哪个点进去，直接下载安装包。</p>
+    <section class="intro">
+      <div class="wrap intro__inner">
+        <div class="intro__text">
+          <p class="intro__kicker" data-hero-kicker>自己写的软件</p>
+          <h1 class="intro__title" data-hero-title>挑一个趁手的软件</h1>
+          <p class="intro__sub" data-hero-sub>看中哪个点进去，直接下载安装包。</p>
         </div>
-        <dl class="hero__stats rise" style="--i: 1">
-          <div class="hero__stat">
+        <dl class="intro__stats">
+          <div class="intro__stat">
             <dt data-stat-apps-label>在架应用</dt>
-            <dd data-stat-total>—<span>款</span></dd>
+            <dd data-stat-total>—</dd>
           </div>
-          <div class="hero__stat">
+          <div class="intro__stat">
             <dt data-stat-downloads-label>累计下载</dt>
-            <dd data-stat-downloads>—<span>次</span></dd>
+            <dd data-stat-downloads>—</dd>
           </div>
         </dl>
       </div>
@@ -133,7 +129,6 @@
       </div>
     </footer>
 
-    <script type="module" src="/assets/liquid.js"></script>
     <script type="module" src="/assets/site.js"></script>
   </body>
 </html>

@@ -18,6 +18,7 @@
     top: 0;
     align-self: start;
     height: 100vh;
+    height: 100dvh; /* 跟随可视高度，避免移动端地址栏收起时底部被截断 */
     display: flex;
     flex-direction: column;
     gap: 22px;
@@ -51,7 +52,7 @@
 
   .rail__sub {
     font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.62);
   }
 
   .rail__group {
@@ -61,7 +62,7 @@
 
   .rail__label {
     font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.58);
   }
 
   .rail__stat {
@@ -164,6 +165,12 @@
     outline: none;
   }
 
+  /* 输入框本身无边框，焦点反馈落在外层容器上 */
+  .field-inline:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
   .field-inline span {
     font-size: 0.8rem;
     color: var(--ink-faint);
@@ -187,11 +194,13 @@
     font-weight: 500;
     color: var(--ink-faint);
     cursor: pointer;
-    transition: all 0.16s var(--ease);
+    transition: color 0.16s var(--ease), background-color 0.16s var(--ease), box-shadow 0.16s var(--ease);
   }
 
-  .tabs button:hover:not([aria-pressed='true']) {
-    color: var(--ink);
+  @media (hover: hover) and (pointer: fine) {
+    .tabs button:hover:not([aria-pressed='true']) {
+      color: var(--ink);
+    }
   }
 
   .tabs button[aria-pressed='true'] {
@@ -213,6 +222,12 @@
     font-size: 0.85rem;
     color: var(--ink-soft);
     cursor: pointer;
+  }
+
+  select.filter:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   }
 }
 
@@ -288,8 +303,15 @@
     transition: background 0.16s var(--ease);
   }
 
-  .row:hover {
-    background: var(--paper-card);
+  /* 触屏点按行时给出反馈，替代被门控掉的悬停态 */
+  .row:active {
+    background: var(--paper-deep);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .row:hover {
+      background: var(--paper-card);
+    }
   }
 
   .row__num {
@@ -363,6 +385,7 @@
   .panel {
     width: min(920px, 100%);
     max-height: 92vh;
+    max-height: 92dvh; /* 移动端键盘/地址栏变化时面板不溢出 */
     display: flex;
     flex-direction: column;
     background: var(--paper);
@@ -428,12 +451,14 @@
     cursor: pointer;
     font-size: 0.9rem;
     line-height: 1;
-    transition: all 0.16s var(--ease);
+    transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
   }
 
-  .iconbtn:hover {
-    border-color: var(--ink-faint);
-    background: var(--paper-deep);
+  @media (hover: hover) and (pointer: fine) {
+    .iconbtn:hover {
+      border-color: var(--ink-faint);
+      background: var(--paper-deep);
+    }
   }
 
   /* ------------------------------ 表单 ------------------------------ */
@@ -486,6 +511,7 @@
   .field textarea:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
   }
 
   .field__hint {
@@ -575,6 +601,7 @@
   .linkrow__input:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
   }
 
   .linkrow__del {
@@ -586,12 +613,14 @@
     border-radius: var(--radius);
     color: var(--ink-faint);
     cursor: pointer;
-    transition: all 0.16s var(--ease);
+    transition: border-color 0.16s var(--ease), color 0.16s var(--ease), background-color 0.16s var(--ease);
   }
 
-  .linkrow__del:hover {
-    border-color: var(--accent);
-    color: var(--accent-deep);
+  @media (hover: hover) and (pointer: fine) {
+    .linkrow__del:hover {
+      border-color: var(--accent);
+      color: var(--accent-deep);
+    }
   }
 
   .shotgrid {
@@ -633,8 +662,17 @@
     transition: opacity 0.16s var(--ease);
   }
 
-  .shotgrid__item:hover .shotgrid__del {
-    opacity: 1;
+  @media (hover: hover) and (pointer: fine) {
+    .shotgrid__item:hover .shotgrid__del {
+      opacity: 1;
+    }
+  }
+
+  /* 触屏没有悬停，删除入口必须常驻，否则无法删除截图 */
+  @media (pointer: coarse) {
+    .shotgrid__del {
+      opacity: 1;
+    }
   }
 
   .shotgrid__add {
@@ -649,12 +687,14 @@
     color: var(--ink-faint);
     font-size: 0.78rem;
     cursor: pointer;
-    transition: all 0.18s var(--ease);
+    transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
   }
 
-  .shotgrid__add:hover {
-    border-color: var(--ink-faint);
-    color: var(--ink);
+  @media (hover: hover) and (pointer: fine) {
+    .shotgrid__add:hover {
+      border-color: var(--ink-faint);
+      color: var(--ink);
+    }
   }
 
   .shotgrid__add b {
@@ -814,5 +854,73 @@
   .grid2,
   .grid3 {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 手机：四列表格已放不下，行改成上下两行的卡片式布局 */
+@media (max-width: 560px) {
+  .board__head {
+    display: none;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 12px;
+    border-bottom: 0;
+  }
+
+  #rows {
+    display: grid;
+    gap: 10px;
+  }
+
+  .board {
+    border-top: 0;
+    border-bottom: 0;
+  }
+
+  .row__num {
+    display: none;
+  }
+
+  .row__app {
+    flex: 1 1 100%;
+  }
+
+  .row__status {
+    text-align: left;
+    margin-right: auto;
+  }
+
+  .row__ops {
+    justify-content: flex-end;
+  }
+
+  .row__ops .btn {
+    min-height: 38px;
+  }
+
+  /* 搜索框独占一行，宽度随容器 */
+  .field-inline {
+    flex: 1 1 100%;
+  }
+
+  .field-inline input {
+    width: 100%;
+  }
+}
+
+/* 触屏：表单字号统一提到 16px，规避 iOS 聚焦自动缩放 */
+@media (pointer: coarse) {
+  .field input[type='text'],
+  .field input[type='number'],
+  .field textarea,
+  .field-inline input,
+  .linkrow__input,
+  select.filter {
+    font-size: 16px;
   }
 }

@@ -79,10 +79,12 @@
     transition: background 0.16s var(--ease), color 0.16s var(--ease), border-color 0.16s var(--ease);
   }
 
-  .theme-toggle:hover {
-    background: var(--paper-deep);
-    border-color: var(--ink-faint);
-    color: var(--ink);
+  @media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover {
+      background: var(--paper-deep);
+      border-color: var(--ink-faint);
+      color: var(--ink);
+    }
   }
 
   .theme-toggle svg {
@@ -264,6 +266,7 @@
   .searchbar__field input:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   }
 
   .searchbar__box {
@@ -282,10 +285,12 @@
     padding: 6px;
     background: var(--paper-card);
     border: var(--rule);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
     max-height: 320px;
     overflow-y: auto;
+    /* 列表滚到底不带动整页回弹 */
+    overscroll-behavior: contain;
   }
 
   .suggest[hidden] {
@@ -305,9 +310,15 @@
     cursor: pointer;
   }
 
-  .suggest__item:hover,
+  /* 键盘上下键的选中态始终生效，鼠标悬停只在可悬停设备上生效 */
   .suggest__item.is-active {
     background: var(--paper-deep);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .suggest__item:hover {
+      background: var(--paper-deep);
+    }
   }
 
   .suggest__name {
@@ -367,11 +378,18 @@
     font-size: 0.8rem;
     color: var(--ink-soft);
     cursor: pointer;
-    transition: all 0.16s var(--ease);
+    transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
   }
 
-  .chip:hover {
-    border-color: var(--ink-faint);
+  /* 触屏无悬停：点按瞬间给出按压反馈 */
+  .chip:active:not([aria-pressed='true']) {
+    background: var(--paper-deep);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .chip:hover {
+      border-color: var(--ink-faint);
+    }
   }
 
   .chip[aria-pressed='true'] {
@@ -428,9 +446,11 @@
     transition: color 0.16s var(--ease), background 0.16s var(--ease);
   }
 
-  .sortbar button:hover {
-    color: var(--ink);
-    background: var(--paper-deep);
+  @media (hover: hover) and (pointer: fine) {
+    .sortbar button:hover {
+      color: var(--ink);
+      background: var(--paper-deep);
+    }
   }
 
   .sortbar button[aria-pressed='true'] {
@@ -471,8 +491,15 @@
     transition: background 0.16s var(--ease);
   }
 
-  .entry:hover {
-    background: var(--paper-card);
+  /* 触屏点按整行时给出反馈，替代被门控掉的悬停态 */
+  .entry:active {
+    background: var(--paper-deep);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .entry:hover {
+      background: var(--paper-card);
+    }
   }
 
   .entry__num {
@@ -534,12 +561,14 @@
     border-radius: var(--radius);
     font-size: 0.8rem;
     color: var(--ink-soft);
-    transition: all 0.16s var(--ease);
+    transition: border-color 0.16s var(--ease), color 0.16s var(--ease);
   }
 
-  .entry:hover .entry__go {
-    border-color: var(--accent);
-    color: var(--accent-deep);
+  @media (hover: hover) and (pointer: fine) {
+    .entry:hover .entry__go {
+      border-color: var(--accent);
+      color: var(--accent-deep);
+    }
   }
 
   /* 骨架屏 */
@@ -593,13 +622,15 @@
     transition: color 0.16s var(--ease);
   }
 
-  .backlink:hover {
-    color: var(--accent-deep);
+  @media (hover: hover) and (pointer: fine) {
+    .backlink:hover {
+      color: var(--accent-deep);
+    }
   }
 
   .sheet__card {
     border: var(--rule);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: var(--paper-card);
     padding: 22px;
   }
@@ -712,8 +743,10 @@
     color: var(--accent-deep);
   }
 
-  .linklist a:hover {
-    text-decoration: underline;
+  @media (hover: hover) and (pointer: fine) {
+    .linklist a:hover {
+      text-decoration: underline;
+    }
   }
 
   .prose {
@@ -754,6 +787,11 @@
 
 /* ============================== 触控与安全区 ============================== */
 @media (pointer: coarse) {
+  /* 平板等宽屏触控设备同样要 16px，否则 iOS 聚焦即缩放页面 */
+  .searchbar__field input {
+    font-size: 16px;
+  }
+
   .btn {
     min-height: 42px;
   }

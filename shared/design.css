@@ -15,6 +15,8 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    /* 触屏点按不闪系统高亮，压掉"网页感" */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body,
@@ -65,7 +67,8 @@
     --paper-card: #ffffff;
     --ink: #22262b;
     --ink-soft: #4c5259;
-    --ink-faint: #8a9099;
+    /* 由 #8a9099 加深：小字号说明文字需达到 WCAG AA 4.5:1 */
+    --ink-faint: #6b7078;
     --line: #e4e4e1;
     --line-soft: #efefed;
     --accent: #2f6f9f;
@@ -79,7 +82,9 @@
 
     --rule: 1px solid var(--line);
     --rule-soft: 1px solid var(--line-soft);
+    /* 圆角只保留两档：控件 6px、卡片/面板 12px */
     --radius: 6px;
+    --radius-lg: 12px;
     --gutter: clamp(18px, 4vw, 56px);
     --maxw: 1200px;
 
@@ -95,7 +100,8 @@
     --paper-card: #23272c;
     --ink: #e9ebee;
     --ink-soft: #b4bac1;
-    --ink-faint: #838a93;
+    /* 由 #838a93 提亮：深色下小字对比度不足 4.5:1 */
+    --ink-faint: #9198a1;
     --line: #343941;
     --line-soft: #2b2f35;
     --ok: #58b877;
@@ -127,6 +133,35 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  /* ------------------------------ 控件基线 ------------------------------ */
+  /* 点按立即响应，不等双击缩放带来的 300ms 延迟 */
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  /* 控件文字是操作而非内容：长按不选中、不弹系统菜单 */
+  button,
+  [role='button'],
+  .chip,
+  .stamp,
+  .entry,
+  kbd {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* 触屏没有 hover：输入框字号不足 16px 时 iOS 聚焦会强行放大页面 */
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 
   /* 小号说明文字：不用全大写、不拉字距，避开设计感 */
@@ -172,11 +207,6 @@
     white-space: nowrap;
   }
 
-  .btn:hover:not(:disabled) {
-    --btn-line: var(--ink-faint);
-    --btn-bg: var(--paper-deep);
-  }
-
   .btn:active:not(:disabled) {
     transform: translateY(1px);
   }
@@ -192,20 +222,10 @@
     --btn-line: var(--ink);
   }
 
-  .btn--solid:hover:not(:disabled) {
-    --btn-bg: #33383f;
-    --btn-line: #33383f;
-  }
-
   .btn--accent {
     --btn-bg: var(--accent);
     --btn-line: var(--accent);
     --btn-fg: #fff;
-  }
-
-  .btn--accent:hover:not(:disabled) {
-    --btn-bg: var(--accent-deep);
-    --btn-line: var(--accent-deep);
   }
 
   .btn--sm {
@@ -221,21 +241,39 @@
     --btn-fg: var(--ink-faint);
   }
 
-  .btn--ghost-danger:hover:not(:disabled) {
-    --btn-bg: var(--accent);
-    --btn-line: var(--accent);
-    --btn-fg: #fff;
-  }
-
   .btn--quiet {
     --btn-fg: var(--ink-soft);
     padding: 6px 12px;
     font-size: 0.8rem;
   }
 
-  .btn--quiet:hover:not(:disabled) {
-    --btn-bg: var(--paper-deep);
-    --btn-line: var(--ink-faint);
+  /* 悬停只在真正能悬停的设备上生效，避免触屏点按后状态卡住不还原 */
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover:not(:disabled) {
+      --btn-line: var(--ink-faint);
+      --btn-bg: var(--paper-deep);
+    }
+
+    .btn--solid:hover:not(:disabled) {
+      --btn-bg: #33383f;
+      --btn-line: #33383f;
+    }
+
+    .btn--accent:hover:not(:disabled) {
+      --btn-bg: var(--accent-deep);
+      --btn-line: var(--accent-deep);
+    }
+
+    .btn--ghost-danger:hover:not(:disabled) {
+      --btn-bg: var(--accent);
+      --btn-line: var(--accent);
+      --btn-fg: #fff;
+    }
+
+    .btn--quiet:hover:not(:disabled) {
+      --btn-bg: var(--paper-deep);
+      --btn-line: var(--ink-faint);
+    }
   }
 
   /* ------------------------------ 状态标签 ------------------------------ */
@@ -301,7 +339,7 @@
     padding: 64px 24px;
     text-align: center;
     border: 1px dashed var(--line);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     color: var(--ink-faint);
     background: var(--paper-card);
   }

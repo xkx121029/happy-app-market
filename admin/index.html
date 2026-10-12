@@ -57,6 +57,7 @@
           </h1>
           <div class="tabs" id="view-tabs">
             <button type="button" data-view="apps" aria-pressed="true">应用</button>
+            <button type="button" data-view="stats" aria-pressed="false">统计</button>
             <button type="button" data-view="settings" aria-pressed="false">站点设置</button>
           </div>
           <label class="field-inline apps-only">
@@ -155,6 +156,44 @@
             <button class="btn btn--quiet" type="button" id="settings-reset">恢复默认</button>
             <span class="spacer"></span>
             <button class="btn btn--accent" type="button" id="settings-save">保存设置</button>
+          </div>
+        </section>
+
+        <section class="report" id="stats-view" hidden>
+          <div class="report__cards" id="stat-cards"></div>
+
+          <div class="report__block">
+            <div class="report__head">
+              <h2>下载趋势</h2>
+              <span id="trend-note">最近 14 天</span>
+            </div>
+            <div class="trend" id="trend"></div>
+          </div>
+
+          <div class="report__block">
+            <div class="report__head">
+              <h2>下载排行</h2>
+              <span>按累计下载取前 10</span>
+            </div>
+            <div class="rank" id="rank"></div>
+          </div>
+
+          <div class="report__block">
+            <div class="report__head">
+              <h2>分类统计</h2>
+              <span>含未上架应用</span>
+            </div>
+            <table class="report__table" id="cat-table">
+              <thead>
+                <tr>
+                  <th>分类</th>
+                  <th>应用数</th>
+                  <th>下载数</th>
+                  <th>包体体积</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
         </section>
       </main>

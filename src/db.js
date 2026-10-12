@@ -30,6 +30,14 @@ CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS download_log (
+  id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  app_id INTEGER NOT NULL,
+  day    TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_download_log_day ON download_log(day);
+CREATE INDEX IF NOT EXISTS idx_download_log_app ON download_log(app_id);
 `;
 
 /** 数据库字段白名单：可由接口写入的字段 */
@@ -61,6 +69,21 @@ export function createDb(dbFile) {
 
 function now() {
   return new Date().toISOString();
+}
+
+/** 本地日期键 YYYY-MM-DD，下载明细按天分组用 */
+function dayKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** 往前 N 天的本地日期键（今天为第 1 天） */
+function dayKeyAgo(index) {
+  const date = new Date();
+  date.setDate(date.getDate() - index);
+  return dayKey(date);
 }
 
 /** 解析以 JSON 字符串存储的字符串数组列 */
@@ -280,7 +303,9 @@ export class MarketStore {
   }
 
   incrementDownload(id) {
+    // 计数器给总量，明细行给按天趋势，两者一起写
     this.db.prepare('UPDATE apps SET downloads = downloads + 1 WHERE id = ?').run(Number(id));
+    this.db.prepare('INSERT INTO download_log (app_id, day) VALUES (?, ?)').run(Number(id), dayKey());
     this.invalidateAgg();
   }
 
@@ -304,7 +329,8 @@ export class MarketStore {
              SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS published,
              SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS draft,
              COALESCE(SUM(downloads), 0) AS downloads,
-             COALESCE(SUM(CASE WHEN package_path <> '' THEN 1 ELSE 0 END), 0) AS withPackage
+             COALESCE(SUM(CASE WHEN package_path <> '' THEN 1 ELSE 0 END), 0) AS withPackage,
+             COALESCE(SUM(package_size), 0) AS packageBytes
            FROM apps`
         )
         .get();
@@ -313,7 +339,8 @@ export class MarketStore {
         published: Number(row.published) || 0,
         draft: Number(row.draft) || 0,
         downloads: Number(row.downloads) || 0,
-        withPackage: Number(row.withPackage) || 0
+        withPackage: Number(row.withPackage) || 0,
+        packageBytes: Number(row.packageBytes) || 0
       };
     }
     return this._agg.stats;
@@ -331,6 +358,66 @@ export class MarketStore {
       this._agg.publicStats = { total: Number(row.total) || 0, downloads: Number(row.downloads) || 0 };
     }
     return this._agg.publicStats;
+  }
+
+  /**
+   * 以下统计都带时间窗口（今天/近 N 天），会随时间变化，
+   * 因此不进 _agg 缓存，每次现算。
+   */
+
+  /** 截至今天往前 N 天（含今天）的下载量，来自下载明细 */
+  downloadsSince(days) {
+    const from = dayKeyAgo(Math.max(1, days) - 1);
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM download_log WHERE day >= ?').get(from);
+    return Number(row.n) || 0;
+  }
+
+  /** 最近 N 天每天的下载量，没有下载的日期补 0，供前端直接画柱状图 */
+  downloadsByDay(days = 14) {
+    const span = Math.max(1, Number(days) || 14);
+    const from = dayKeyAgo(span - 1);
+    const rows = this.db
+      .prepare('SELECT day, COUNT(*) AS n FROM download_log WHERE day >= ? GROUP BY day')
+      .all(from);
+    const map = new Map(rows.map((row) => [row.day, Number(row.n)]));
+    const out = [];
+    for (let i = span - 1; i >= 0; i--) {
+      const key = dayKeyAgo(i);
+      out.push({ day: key, count: map.get(key) || 0 });
+    }
+    return out;
+  }
+
+  /** 近 N 天新增的应用数 */
+  appsCreatedSince(days) {
+    const from = new Date(Date.now() - Math.max(1, days) * 86400000).toISOString();
+    const row = this.db.prepare("SELECT COUNT(*) AS n FROM apps WHERE created_at <> '' AND created_at >= ?").get(from);
+    return Number(row.n) || 0;
+  }
+
+  /** 下载量前 N 的应用 */
+  topApps(limit = 10) {
+    return this.db
+      .prepare(
+        `SELECT id, name, category, status, downloads, package_size
+         FROM apps ORDER BY downloads DESC, id ASC LIMIT ?`
+      )
+      .all(Math.max(1, Number(limit) || 10));
+  }
+
+  /** 按分类汇总：应用数、下载数、包体体积 */
+  categorySummary() {
+    return this.db
+      .prepare(
+        `SELECT category,
+                COUNT(*) AS apps,
+                COALESCE(SUM(downloads), 0) AS downloads,
+                COALESCE(SUM(package_size), 0) AS bytes
+         FROM apps
+         GROUP BY category
+         ORDER BY downloads DESC, apps DESC, category ASC`
+      )
+      .all();
   }
 
   /** 读取全部站点设置（只含数据库里存过的项），结果缓存在内存里 */

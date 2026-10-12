@@ -17,6 +17,12 @@ const createBtn = document.getElementById('create');
 const modalRoot = document.getElementById('modal-root');
 const toaster = document.getElementById('toaster');
 const categoryList = document.getElementById('category-list');
+const statsView = document.getElementById('stats-view');
+const statCardsEl = document.getElementById('stat-cards');
+const trendEl = document.getElementById('trend');
+const trendNoteEl = document.getElementById('trend-note');
+const rankEl = document.getElementById('rank');
+const catTableBody = document.querySelector('#cat-table tbody');
 
 const state = { q: '', status: '', items: [] };
 
@@ -100,6 +106,81 @@ async function loadOverview() {
   } catch (err) {
     toast(`概览加载失败：${err.message}`, 'err');
   }
+}
+
+/* ============================== 数据统计 ============================== */
+
+/** 切到统计标签时整体重新拉取 */
+async function loadReport() {
+  try {
+    const data = await api('/api/report');
+    renderReport(data);
+  } catch (err) {
+    toast(`统计数据载入失败：${err.message}`, 'err');
+  }
+}
+
+function renderReport(data) {
+  const { stats, range, trend, top, categories } = data;
+
+  const cards = [
+    ['已上架', formatCount(stats.published)],
+    ['未上架', formatCount(stats.draft)],
+    ['累计下载', formatCount(stats.downloads)],
+    ['今日下载', formatCount(range.today)],
+    ['近 7 天下载', formatCount(range.week)],
+    ['近 30 天下载', formatCount(range.month)],
+    ['包体总体积', humanSize(stats.packageBytes)],
+    ['近 7 天新增应用', formatCount(range.newAppsWeek)]
+  ];
+  statCardsEl.innerHTML = cards
+    .map(([label, value]) => `<div class="statcard"><span>${escapeHtml(label)}</span><b>${value}</b></div>`)
+    .join('');
+
+  // 趋势柱：以 14 天里的最高值为满格，没有下载的日期留空
+  const peak = Math.max(0, ...trend.map((item) => item.count));
+  const total = trend.reduce((sum, item) => sum + item.count, 0);
+  trendNoteEl.textContent = total
+    ? `最近 14 天共 ${formatCount(total)} 次，峰值 ${formatCount(peak)} 次`
+    : '最近 14 天暂无下载记录，明细自本版本起开始记录';
+  trendEl.innerHTML = trend
+    .map((item) => {
+      const percent = item.count ? Math.max(3, Math.round((item.count / Math.max(1, peak)) * 100)) : 0;
+      return `<div class="trend__col" title="${item.day}：${item.count} 次">
+          <div class="trend__track"><i class="trend__bar" style="height:${percent}%"></i></div>
+          <span class="trend__day">${item.day.slice(5)}</span>
+        </div>`;
+    })
+    .join('');
+
+  const topMax = Math.max(1, ...top.map((item) => item.downloads));
+  rankEl.innerHTML = top.length
+    ? top
+        .map((item, index) => {
+          const percent = item.downloads ? Math.max(2, Math.round((item.downloads / topMax) * 100)) : 0;
+          const draftMark = item.status ? '' : ' · 未上架';
+          return `<div class="rank__row">
+            <span class="rank__no">${index + 1}</span>
+            <span class="rank__name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}${draftMark}</span>
+            <span class="rank__track"><i style="width:${percent}%"></i></span>
+            <b class="rank__num">${formatCount(item.downloads)}</b>
+          </div>`;
+        })
+        .join('')
+    : '<p class="report__empty">还没有应用</p>';
+
+  catTableBody.innerHTML = categories.length
+    ? categories
+        .map(
+          (item) => `<tr>
+            <td>${escapeHtml(item.category || '未分类')}</td>
+            <td>${formatCount(item.apps)}</td>
+            <td>${formatCount(item.downloads)}</td>
+            <td>${humanSize(item.bytes)}</td>
+          </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="4" class="report__empty">还没有应用</td></tr>';
 }
 
 function rowHtml(app, index) {
@@ -862,14 +943,19 @@ async function resetSettings() {
 
 function switchView(view) {
   const isSettings = view === 'settings';
+  const isStats = view === 'stats';
+  const isList = view === 'apps';
   mainEl.classList.toggle('is-settings', isSettings);
+  mainEl.classList.toggle('is-stats', isStats);
   settingsView.hidden = !isSettings;
-  boardCount.hidden = isSettings;
-  topbarTitle.firstChild.textContent = isSettings ? '站点设置' : '应用管理';
+  statsView.hidden = !isStats;
+  boardCount.hidden = !isList;
+  topbarTitle.firstChild.textContent = isSettings ? '站点设置' : isStats ? '数据统计' : '应用管理';
   tabsEl.querySelectorAll('button').forEach((node) => {
     node.setAttribute('aria-pressed', String(node.dataset.view === view));
   });
   if (isSettings) loadSettings();
+  if (isStats) loadReport();
 }
 
 tabsEl.addEventListener('click', (event) => {

@@ -214,6 +214,11 @@
     display: none;
   }
 
+  /* 切到统计时同样隐藏应用管理相关的控件 */
+  .main.is-stats .apps-only {
+    display: none;
+  }
+
   select.filter {
     padding: 8px 10px;
     background: var(--paper-card);
@@ -270,6 +275,200 @@
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--ink-soft);
+  }
+
+  /* ------------------------------ 数据统计 ------------------------------ */
+  .report {
+    display: grid;
+    gap: 24px;
+    max-width: 1080px;
+  }
+
+  .report__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .statcard {
+    padding: 14px 16px;
+    background: var(--paper-card);
+    border: var(--rule-soft);
+    border-radius: var(--radius);
+  }
+
+  .statcard span {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+
+  .statcard b {
+    display: block;
+    margin-top: 6px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--ink);
+    word-break: break-all;
+  }
+
+  .report__block {
+    padding-top: 16px;
+    border-top: var(--rule);
+  }
+
+  .report__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .report__head h2 {
+    margin-right: auto;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .report__head span {
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+
+  .report__empty {
+    padding: 16px 0;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    text-align: left;
+  }
+
+  /* 趋势柱：最高一天为满格，没有下载的日期留空，窄屏可横向滚动 */
+  .trend {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    border-bottom: var(--rule);
+  }
+
+  .trend__col {
+    flex: 1 1 0;
+    min-width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .trend__track {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 132px;
+  }
+
+  .trend__bar {
+    display: block;
+    width: 100%;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+
+  .trend__day {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .rank {
+    display: grid;
+    gap: 8px;
+  }
+
+  .rank__row {
+    display: grid;
+    grid-template-columns: 26px minmax(120px, 240px) minmax(0, 1fr) 78px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rank__no {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+
+  .rank__name {
+    min-width: 0;
+    font-size: 0.86rem;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rank__track {
+    height: 8px;
+    overflow: hidden;
+    background: var(--paper-deep);
+    border-radius: 4px;
+  }
+
+  .rank__track i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+
+  .rank__num {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  .report__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+
+  .report__table th,
+  .report__table td {
+    padding: 9px 10px;
+    border-bottom: var(--rule-soft);
+    text-align: right;
+  }
+
+  .report__table th:first-child,
+  .report__table td:first-child {
+    text-align: left;
+  }
+
+  .report__table th {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ink-faint);
+  }
+
+  .report__table td {
+    color: var(--ink-soft);
+  }
+
+  /* 窄屏排行条让位给名称与数值 */
+  @media (max-width: 640px) {
+    .rank__row {
+      grid-template-columns: 26px minmax(0, 1fr) 70px;
+    }
+
+    .rank__track {
+      display: none;
+    }
   }
 
   /* ------------------------------ 数据表 ------------------------------ */

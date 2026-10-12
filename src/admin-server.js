@@ -61,6 +61,7 @@ function cleanOpenSourceUrls(value) {
 export function createAdminServer(store) {
   const routes = [
     { method: 'GET', pattern: /^\/api\/overview$/, handler: adminOverview },
+    { method: 'GET', pattern: /^\/api\/report$/, handler: adminReport },
     { method: 'GET', pattern: /^\/api\/settings$/, handler: adminGetSettings },
     { method: 'PUT', pattern: /^\/api\/settings$/, handler: adminUpdateSettings },
     { method: 'POST', pattern: /^\/api\/settings\/reset$/, handler: adminResetSettings },
@@ -158,6 +159,26 @@ async function adminOverview(req, res, { store }) {
     ports: { public: config.publicPort, admin: config.adminPort },
     stats: store.stats(),
     categories: store.categories()
+  });
+}
+
+/**
+ * 数据统计页：概览卡片 + 时间窗口 + 按天趋势 + 下载排行 + 分类汇总。
+ * 趋势依赖下载明细表，历史下载只计了总数，明细从本版本上线后开始累积。
+ */
+async function adminReport(req, res, { store }) {
+  return json(res, 200, {
+    ok: true,
+    stats: store.stats(),
+    range: {
+      today: store.downloadsSince(1),
+      week: store.downloadsSince(7),
+      month: store.downloadsSince(30),
+      newAppsWeek: store.appsCreatedSince(7)
+    },
+    trend: store.downloadsByDay(14),
+    top: store.topApps(10),
+    categories: store.categorySummary()
   });
 }
 

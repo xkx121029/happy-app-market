@@ -218,12 +218,39 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
   "siteName": "开心软件市场",
   "publicUrl": "https://example.com",
   "ports": { "public": 8080, "admin": 8081 },
-  "stats": { "total": 3, "published": 2, "draft": 1, "downloads": 42, "withPackage": 2 },
+  "stats": { "total": 3, "published": 2, "draft": 1, "downloads": 42, "withPackage": 2, "packageBytes": 67108864 },
   "categories": [{ "name": "效率办公", "count": 2 }]
 }
 ```
 
-`stats` 字段含义：`total` 应用总数、`published` 已上架、`draft` 未上架、`withPackage` 已上传包体、`downloads` 累计下载。
+`stats` 字段含义：`total` 应用总数、`published` 已上架、`draft` 未上架、`withPackage` 已上传包体、`downloads` 累计下载、`packageBytes` 全部包体累计体积（字节）。
+
+### GET /api/report
+
+「统计」标签页的数据源，含时间窗口、按天趋势、下载排行与分类汇总。
+
+- `range`：今日 / 近 7 天 / 近 30 天的下载次数，以及近 7 天新增应用数。
+- `trend`：最近 14 天逐日下载量，**按本地日期补 0**，可直接画柱状图；明细从本版本起开始累积，历史下载只计入 `stats.downloads` 总数。
+- `top`：按累计下载排序的前 10 个应用（含未上架）。
+- `categories`：按分类汇总的应用数、下载数与包体体积，排序同 `downloads DESC`。
+
+```json
+{
+  "ok": true,
+  "stats": { "total": 3, "published": 2, "draft": 1, "downloads": 42, "withPackage": 2, "packageBytes": 67108864 },
+  "range": { "today": 4, "week": 18, "month": 42, "newAppsWeek": 1 },
+  "trend": [
+    { "day": "2026-09-29", "count": 0 },
+    { "day": "2026-10-12", "count": 4 }
+  ],
+  "top": [
+    { "id": 2, "name": "截图工具", "category": "图像图形", "status": 1, "downloads": 30, "package_size": 12582912 }
+  ],
+  "categories": [
+    { "category": "图像图形", "apps": 2, "downloads": 30, "bytes": 12582912 }
+  ]
+}
+```
 
 ### GET /api/settings
 

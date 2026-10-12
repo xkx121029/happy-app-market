@@ -101,6 +101,14 @@ function toPublicApp(row) {
 export class MarketStore {
   constructor(db) {
     this.db = db;
+    // 高频只读数据放缓存：设置几乎每次请求都要读，统计与分类只在写入后变化
+    this._settings = null;
+    this._agg = null;
+  }
+
+  /** 任何写操作后调用，让统计与分类缓存失效 */
+  invalidateAgg() {
+    this._agg = null;
   }
 
   close() {
@@ -185,6 +193,7 @@ export class MarketStore {
         ts,
         ts
       );
+    this.invalidateAgg();
     return this.get(info.lastInsertRowid);
   }
 
@@ -206,6 +215,7 @@ export class MarketStore {
     fields.push('updated_at = ?');
     params.push(now(), Number(id));
     this.db.prepare(`UPDATE apps SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+    this.invalidateAgg();
     return this.get(id);
   }
 
@@ -215,6 +225,7 @@ export class MarketStore {
         'UPDATE apps SET package_path = ?, package_file = ?, package_size = ?, updated_at = ? WHERE id = ?'
       )
       .run(pkgPath, file, Number(size) || 0, now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
@@ -222,11 +233,13 @@ export class MarketStore {
     this.db
       .prepare("UPDATE apps SET package_path = '', package_file = '', package_size = 0, updated_at = ? WHERE id = ?")
       .run(now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
   setIcon(id, url) {
     this.db.prepare('UPDATE apps SET icon = ?, updated_at = ? WHERE id = ?').run(url, now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
@@ -237,6 +250,7 @@ export class MarketStore {
     this.db
       .prepare('UPDATE apps SET screenshots = ?, updated_at = ? WHERE id = ?')
       .run(JSON.stringify(list), now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
@@ -247,11 +261,13 @@ export class MarketStore {
     this.db
       .prepare('UPDATE apps SET screenshots = ?, updated_at = ? WHERE id = ?')
       .run(JSON.stringify(list), now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
   setStatus(id, status) {
     this.db.prepare('UPDATE apps SET status = ?, updated_at = ? WHERE id = ?').run(status ? 1 : 0, now(), Number(id));
+    this.invalidateAgg();
     return this.get(id);
   }
 
@@ -259,57 +275,73 @@ export class MarketStore {
     const app = this.get(id);
     if (!app) return null;
     this.db.prepare('DELETE FROM apps WHERE id = ?').run(Number(id));
+    this.invalidateAgg();
     return app;
   }
 
   incrementDownload(id) {
     this.db.prepare('UPDATE apps SET downloads = downloads + 1 WHERE id = ?').run(Number(id));
+    this.invalidateAgg();
   }
 
   categories() {
-    const rows = this.db
-      .prepare("SELECT category AS name, COUNT(*) AS count FROM apps WHERE status = 1 AND category <> '' GROUP BY category ORDER BY count DESC, name ASC")
-      .all();
-    return rows;
+    if (!this._agg) this._agg = {};
+    if (!this._agg.categories) {
+      this._agg.categories = this.db
+        .prepare("SELECT category AS name, COUNT(*) AS count FROM apps WHERE status = 1 AND category <> '' GROUP BY category ORDER BY count DESC, name ASC")
+        .all();
+    }
+    return this._agg.categories;
   }
 
   stats() {
-    const row = this.db
-      .prepare(
-        `SELECT
-           COUNT(*) AS total,
-           SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS published,
-           SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS draft,
-           COALESCE(SUM(downloads), 0) AS downloads,
-           COALESCE(SUM(CASE WHEN package_path <> '' THEN 1 ELSE 0 END), 0) AS withPackage
-         FROM apps`
-      )
-      .get();
-    return {
-      total: Number(row.total) || 0,
-      published: Number(row.published) || 0,
-      draft: Number(row.draft) || 0,
-      downloads: Number(row.downloads) || 0,
-      withPackage: Number(row.withPackage) || 0
-    };
+    if (!this._agg) this._agg = {};
+    if (!this._agg.stats) {
+      const row = this.db
+        .prepare(
+          `SELECT
+             COUNT(*) AS total,
+             SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS published,
+             SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS draft,
+             COALESCE(SUM(downloads), 0) AS downloads,
+             COALESCE(SUM(CASE WHEN package_path <> '' THEN 1 ELSE 0 END), 0) AS withPackage
+           FROM apps`
+        )
+        .get();
+      this._agg.stats = {
+        total: Number(row.total) || 0,
+        published: Number(row.published) || 0,
+        draft: Number(row.draft) || 0,
+        downloads: Number(row.downloads) || 0,
+        withPackage: Number(row.withPackage) || 0
+      };
+    }
+    return this._agg.stats;
   }
 
   publicStats() {
-    const row = this.db
-      .prepare(
-        `SELECT COUNT(*) AS total, COALESCE(SUM(downloads), 0) AS downloads
-         FROM apps WHERE status = 1`
-      )
-      .get();
-    return { total: Number(row.total) || 0, downloads: Number(row.downloads) || 0 };
+    if (!this._agg) this._agg = {};
+    if (!this._agg.publicStats) {
+      const row = this.db
+        .prepare(
+          `SELECT COUNT(*) AS total, COALESCE(SUM(downloads), 0) AS downloads
+           FROM apps WHERE status = 1`
+        )
+        .get();
+      this._agg.publicStats = { total: Number(row.total) || 0, downloads: Number(row.downloads) || 0 };
+    }
+    return this._agg.publicStats;
   }
 
-  /** 读取全部站点设置（只含数据库里存过的项） */
+  /** 读取全部站点设置（只含数据库里存过的项），结果缓存在内存里 */
   settings() {
-    const rows = this.db.prepare('SELECT key, value FROM settings').all();
-    const out = {};
-    for (const row of rows) out[row.key] = row.value;
-    return out;
+    if (!this._settings) {
+      const rows = this.db.prepare('SELECT key, value FROM settings').all();
+      const out = {};
+      for (const row of rows) out[row.key] = row.value;
+      this._settings = out;
+    }
+    return { ...this._settings };
   }
 
   /** 写入站点设置，逐项覆盖 */
@@ -318,6 +350,7 @@ export class MarketStore {
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
     );
     for (const [key, value] of Object.entries(patch)) stmt.run(String(key), String(value ?? ''));
+    this._settings = null;
     return this.settings();
   }
 }

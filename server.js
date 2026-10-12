@@ -1,5 +1,5 @@
 import os from 'node:os';
-import { config, ensureDirs, DB_FILE, DIRS } from './src/config.js';
+import { config, ensureDirs, DB_FILE, DIRS, mergeSettings } from './src/config.js';
 import { createDb } from './src/db.js';
 import { createPublicServer } from './src/public-server.js';
 import { createAdminServer } from './src/admin-server.js';
@@ -33,6 +33,12 @@ function listen(server, port, label) {
 
 const host = lanAddress();
 
+// 拉长 keep-alive 空闲窗口，减少外网/反向代理场景下的重复 TCP 握手
+for (const server of [publicServer, adminServer]) {
+  server.keepAliveTimeout = 15_000;
+  server.headersTimeout = 20_000;
+}
+
 try {
   await listen(publicServer, config.publicPort, '前台');
   await listen(adminServer, config.adminPort, '后台');
@@ -42,6 +48,8 @@ try {
 }
 
 const line = '─'.repeat(52);
+// 外网访问地址：后台可改，存在数据库里，重启后读的是最新值
+const publicUrl = mergeSettings(store.settings()).publicUrl || '';
 console.log(`
 ┌${line}┐
   ${config.siteName} 已启动
@@ -50,7 +58,7 @@ console.log(`
                http://${host}:${config.publicPort}
   后台管理台   http://localhost:${config.adminPort}
                http://${host}:${config.adminPort}
-
+${publicUrl ? `\n  外网访问     ${publicUrl}（前台）\n` : ''}
   数据文件     ${DB_FILE}
   上传目录     ${DIRS.uploads}
   上传上限     ${config.maxUploadMB} MB

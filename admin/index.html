@@ -8,10 +8,16 @@
     <meta name="robots" content="noindex, nofollow" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- 字体表改为非阻塞加载：网络不通时先用系统无衬线字体渲染，不卡首屏 -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" />
+    </noscript>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6f9f'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3E%E5%8F%B0%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/assets/admin.css" />
   </head>
@@ -134,6 +140,15 @@
           <div class="field">
             <label for="s-footerNote">页脚说明</label>
             <input id="s-footerNote" type="text" maxlength="120" />
+          </div>
+
+          <p class="fieldset-title">访问地址</p>
+          <div class="field">
+            <label for="s-publicUrl">外网访问地址</label>
+            <input id="s-publicUrl" type="text" maxlength="200" placeholder="https://example.com" />
+            <p class="field__hint">
+              经内网穿透或反向代理暴露到公网时填这里，详情页「复制链接」会用它生成能直接发给别人的绝对地址。留空则用当前访问地址。
+            </p>
           </div>
 
           <div class="settings__foot">

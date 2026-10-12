@@ -37,7 +37,9 @@ export function createPublicServer(store) {
         if (!app) return fail(res, 404, '应用不存在或已下架');
         if (!app.hasPackage) return fail(res, 404, '该应用暂无可下载的包体');
         const abs = path.join(DIRS.packages, path.basename(app.package_path));
-        if (!fs.existsSync(abs)) return fail(res, 404, '包体文件已丢失，请联系管理员');
+        // 异步 stat，避免同步 IO 卡住事件循环
+        const stat = await fs.promises.stat(abs).catch(() => null);
+        if (!stat?.isFile()) return fail(res, 404, '包体文件已丢失，请联系管理员');
         // 仅统计完整下载（非 Range 续传请求），避免重复计数
         if (!req.headers.range) store.incrementDownload(app.id);
         return serveFile(req, res, abs, {
@@ -68,6 +70,7 @@ export function createPublicServer(store) {
           statDownloadsLabel: settings.statDownloadsLabel,
           footerNote: settings.footerNote,
           accentColor: settings.accentColor,
+          publicUrl: settings.publicUrl || '',
           pageSize: Number(settings.defaultPageSize) || 12
         });
       }

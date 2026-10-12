@@ -794,7 +794,8 @@ const SETTING_FIELDS = {
   statDownloadsLabel: '#s-statDownloadsLabel',
   accentColor: '#s-accentColor',
   defaultPageSize: '#s-defaultPageSize',
-  footerNote: '#s-footerNote'
+  footerNote: '#s-footerNote',
+  publicUrl: '#s-publicUrl'
 };
 
 function fillSettings(settings = {}) {

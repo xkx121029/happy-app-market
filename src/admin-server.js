@@ -150,9 +150,11 @@ export function createAdminServer(store) {
 /* ------------------------------- 处理函数 ------------------------------- */
 
 async function adminOverview(req, res, { store }) {
+  const settings = mergeSettings(store.settings());
   return json(res, 200, {
     ok: true,
-    siteName: mergeSettings(store.settings()).siteName,
+    siteName: settings.siteName,
+    publicUrl: settings.publicUrl || '',
     ports: { public: config.publicPort, admin: config.adminPort },
     stats: store.stats(),
     categories: store.categories()
@@ -170,7 +172,8 @@ const SETTING_MAX = {
   heroSubtitle: 200,
   statAppsLabel: 20,
   statDownloadsLabel: 20,
-  footerNote: 120
+  footerNote: 120,
+  publicUrl: 200
 };
 
 async function adminGetSettings(req, res, { store }) {
@@ -198,6 +201,28 @@ async function adminUpdateSettings(req, res, { store }) {
       const size = Number(body.defaultPageSize);
       if (!Number.isFinite(size) || size < 1 || size > 100) return fail(res, 400, '每页条数需要在 1 到 100 之间');
       patch.defaultPageSize = String(Math.round(size));
+      continue;
+    }
+
+    // 外网访问地址：允许留空（回落到 config.json），填了就必须是完整可访问的 http/https 地址
+    if (key === 'publicUrl') {
+      const value = str(body.publicUrl, SETTING_MAX.publicUrl).trim();
+      if (!value) {
+        patch.publicUrl = '';
+        continue;
+      }
+      if (!/^https?:\/\//i.test(value)) {
+        return fail(res, 400, '外网访问地址需要以 http:// 或 https:// 开头');
+      }
+      let parsed;
+      try {
+        parsed = new URL(value);
+      } catch {
+        parsed = null;
+      }
+      if (!parsed?.hostname) return fail(res, 400, `外网访问地址不是合法的网址：${value}`);
+      // 统一去掉结尾斜杠，方便前端直接拼 /app/1 这样的路径
+      patch.publicUrl = value.replace(/\/+$/, '');
       continue;
     }
 
@@ -407,7 +432,9 @@ async function adminDownload(req, res, { store, params }) {
   const app = store.get(params[0]);
   if (!app || !app.hasPackage) return fail(res, 404, '该应用暂无可下载的包体');
   const abs = path.join(DIRS.packages, path.basename(app.package_path));
-  if (!fs.existsSync(abs)) return fail(res, 404, '包体文件已丢失');
+  // 异步 stat，避免同步 IO 卡住事件循环
+  const stat = await fs.promises.stat(abs).catch(() => null);
+  if (!stat?.isFile()) return fail(res, 404, '包体文件已丢失');
   return serveFile(req, res, abs, { downloadName: app.package_file || `app-${app.id}.bin`, cache: 'no-store' });
 }
 

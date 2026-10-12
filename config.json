@@ -1,6 +1,7 @@
 {
   "siteName": "开心软件市场",
   "siteSlogan": "自己写的软件都放在这里",
+  "publicUrl": "",
   "publicPort": 8080,
   "adminPort": 8081,
   "host": "0.0.0.0",

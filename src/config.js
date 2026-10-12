@@ -16,6 +16,7 @@ const DEFAULTS = {
   statDownloadsLabel: '累计下载',
   footerNote: '下载前请核对版本与体积',
   accentColor: '#2f6f9f',
+  publicUrl: '',
   publicPort: 8080,
   adminPort: 8081,
   host: '0.0.0.0',
@@ -37,6 +38,7 @@ export const SETTING_KEYS = [
   'statDownloadsLabel',
   'footerNote',
   'accentColor',
+  'publicUrl',
   'defaultPageSize'
 ];
 

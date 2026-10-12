@@ -13,6 +13,7 @@
 {
   "siteName": "开心软件市场",
   "siteSlogan": "自己写的软件都放在这里",
+  "publicUrl": "",
   "publicPort": 8080,
   "adminPort": 8081,
   "host": "0.0.0.0",
@@ -21,7 +22,7 @@
 }
 ```
 
-站点文案、强调色、首屏内容与每页条数属于**运行时可改**的设置项，存在数据库里，在后台「站点设置」页修改即时生效，无需重启，也无需改文件（见后台 `GET/PUT /api/settings`）。`config.json` 里的同名字段只作为缺省值兜底。
+站点文案、强调色、首屏内容、外网访问地址与每页条数属于**运行时可改**的设置项，存在数据库里，在后台「站点设置」页修改即时生效，无需重启，也无需改文件（见后台 `GET/PUT /api/settings`）。`config.json` 里的同名字段只作为缺省值兜底。
 
 统一约定：
 
@@ -30,6 +31,8 @@
 - 失败时 HTTP 状态码同步反映原因：`400` 参数问题或上传超限、`404` 不存在、`405` 方法不支持。
 - 后台端口已开放 CORS（`Access-Control-Allow-Origin` 回显来源），可从任意页面跨端口调用。
 - 请求了存在但方法不匹配的地址返回 `405`，并带 `Allow` 头；地址完全不存在返回 `404`。
+- 客户端声明 `Accept-Encoding: gzip` 时，超过 1KB 的静态文件与 JSON 响应按 gzip 返回，并带 `Vary: Accept-Encoding`；包体等二进制与 `Range` 分段请求不压缩。
+- 静态文件带 `ETag` 与 `Last-Modified`，携带 `If-None-Match` 或 `If-Modified-Since` 命中时返回 `304`，正文不传。
 
 ---
 
@@ -178,11 +181,14 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
   "statDownloadsLabel": "累计下载",
   "footerNote": "下载前请核对版本与体积",
   "accentColor": "#2f6f9f",
+  "publicUrl": "",
   "pageSize": 12
 }
 ```
 
 `heroTitle` 支持两种轻量写法：`\n` 代表换行，用 `*星号*` 包住的词会渲染成强调色。
+
+`publicUrl` 是后台配置的外网访问地址；留空表示未配置，前台详情页会退回当前访问地址生成分享链接。
 
 ---
 
@@ -210,6 +216,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 {
   "ok": true,
   "siteName": "开心软件市场",
+  "publicUrl": "https://example.com",
   "ports": { "public": 8080, "admin": 8081 },
   "stats": { "total": 3, "published": 2, "draft": 1, "downloads": 42, "withPackage": 2 },
   "categories": [{ "name": "效率办公", "count": 2 }]
@@ -235,6 +242,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
     "statDownloadsLabel": "累计下载",
     "footerNote": "下载前请核对版本与体积",
     "accentColor": "#2f6f9f",
+    "publicUrl": "",
     "defaultPageSize": "12"
   },
   "defaults": { "siteName": "开心软件市场", "accentColor": "#2f6f9f" }
@@ -257,6 +265,7 @@ curl -H "Range: bytes=0-1023" http://localhost:8080/api/apps/1/download
 | `footerNote` | 页脚说明，上限 120 字符 |
 | `accentColor` | 强调色，需为 `#RRGGBB` 形式的十六进制颜色，非法返回 `400` |
 | `defaultPageSize` | 每页条数，1 到 100 之间的整数，非法返回 `400` |
+| `publicUrl` | 外网访问地址，留空即清空；填写时必须以 `http://` 或 `https://` 开头且是合法网址，结尾斜杠会被去掉，非法返回 `400` |
 
 ```bash
 curl -X PUT http://localhost:8081/api/settings \

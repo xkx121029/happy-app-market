@@ -21,6 +21,12 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => toggleT
 
 const id = (location.pathname.match(/\/app\/(\d+)/) || [])[1];
 let siteName = '开心软件市场';
+// 后台配置的外网访问地址；没配就退回当前访问地址
+let publicUrl = '';
+
+function shareBase() {
+  return (publicUrl || location.origin).replace(/\/+$/, '');
+}
 
 function specRow(label, value) {
   return `<div class="spec__row"><dt>${label}</dt><dd>${escapeHtml(value || '—')}</dd></div>`;
@@ -72,6 +78,14 @@ function render(app) {
           }
           <a class="btn btn--block" href="/"><span aria-hidden="true">◂</span> 浏览其他应用</a>
         </div>
+        <div class="sheet__copy">
+          <button class="btn btn--sm" type="button" data-copy="share">复制分享链接</button>
+          ${
+            app.hasPackage
+              ? `<button class="btn btn--sm" type="button" data-copy="direct">复制下载直链</button>`
+              : ''
+          }
+        </div>
         <p class="sheet__note">${
           app.hasPackage
             ? `下载文件名：${escapeHtml(app.package_file || '安装包')}`
@@ -112,11 +126,60 @@ function render(app) {
   document.title = `${app.name} · ${siteName}`;
 }
 
+/** 复制文本：安全上下文走 Clipboard API，http 外网访问时退回 execCommand */
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      /* 被拒绝时继续走下面的降级方案 */
+    }
+  }
+  const field = document.createElement('textarea');
+  field.value = text;
+  field.setAttribute('readonly', '');
+  field.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+  document.body.appendChild(field);
+  field.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {
+    ok = false;
+  }
+  field.remove();
+  return ok;
+}
+
+/** 复制结果直接反馈在按钮上，不额外引入弹层 */
+function flashCopyState(button, text) {
+  if (button.dataset.busy) return;
+  const original = button.textContent;
+  button.dataset.busy = '1';
+  button.textContent = text;
+  setTimeout(() => {
+    button.textContent = original;
+    delete button.dataset.busy;
+  }, 1600);
+}
+
+// 复制的是绝对地址：配了外网地址就用外网，没配就用当前访问地址
+root.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-copy]');
+  if (!button || !id) return;
+  const base = shareBase();
+  const url = button.dataset.copy === 'share' ? `${base}/app/${id}` : `${base}/api/apps/${id}/download`;
+  const ok = await copyText(url);
+  flashCopyState(button, ok ? '已复制' : '复制失败');
+});
+
 async function boot() {
   try {
     const site = await api('/api/site');
     applySiteSettings(site);
     siteName = site.siteName || siteName;
+    publicUrl = site.publicUrl || '';
     const stats = await api('/api/stats');
     setText('[data-stat-total]', formatCount(stats.total));
     setText('[data-stat-downloads]', formatCount(stats.downloads));

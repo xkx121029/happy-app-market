@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 
 /** 常见文件类型的 MIME 映射表 */
 const MIME = {
@@ -32,15 +33,71 @@ export function mimeOf(filePath) {
   return MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
 }
 
-/** 发送 JSON 响应 */
+/** 可以压缩传输的文本类型，二进制（包体、图片）一律不压 */
+const COMPRESSIBLE = /^(text\/|application\/(?:json|javascript|xml|manifest)|image\/svg\+)/i;
+
+/** 小于该体积不压缩，省下的字节抵不过压缩开销 */
+const MIN_GZIP_BYTES = 1024;
+
+/** 客户端是否接受 gzip 编码 */
+function acceptsGzip(req) {
+  return /\bgzip\b/i.test(String(req?.headers?.['accept-encoding'] || ''));
+}
+
+/** 用「体积 + 修改时间」生成协商缓存标记 */
+function etagOf(stat) {
+  return `"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
+}
+
+/** 判断协商缓存是否命中：优先比对 If-None-Match，其次回落 If-Modified-Since */
+function isFresh(req, etag, mtimeMs) {
+  const inm = req.headers['if-none-match'];
+  if (inm) {
+    return String(inm)
+      .split(',')
+      .some((tag) => {
+        const t = tag.trim();
+        return t === '*' || t === etag || t === `W/${etag}`;
+      });
+  }
+  const ims = req.headers['if-modified-since'];
+  if (ims) {
+    const since = Date.parse(String(ims));
+    // HTTP 日期只有秒级精度，比较前先把修改时间截断到秒
+    return Number.isFinite(since) && Math.floor(mtimeMs / 1000) * 1000 <= since;
+  }
+  return false;
+}
+
+/**
+ * 发送 JSON 响应。
+ * 体积超过阈值且客户端支持时改走 gzip，减少接口传输量。
+ */
 export function json(res, status, data) {
   const body = Buffer.from(JSON.stringify(data), 'utf8');
-  res.writeHead(status, {
+  const baseHeaders = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': body.length,
     'Cache-Control': 'no-store'
+  };
+  const req = res.req;
+  if (body.length < MIN_GZIP_BYTES || !acceptsGzip(req)) {
+    res.writeHead(status, { ...baseHeaders, 'Content-Length': body.length });
+    return res.end(body);
+  }
+  return zlib.gzip(body, (err, gzipped) => {
+    if (res.writableEnded || res.destroyed) return;
+    if (err) {
+      res.writeHead(status, { ...baseHeaders, 'Content-Length': body.length });
+      return res.end(body);
+    }
+    res.writeHead(status, {
+      ...baseHeaders,
+      'Content-Encoding': 'gzip',
+      'Content-Length': gzipped.length,
+      Vary: 'Accept-Encoding'
+    });
+    res.end(gzipped);
   });
-  res.end(body);
 }
 
 /** 发送纯文本错误 */
@@ -143,7 +200,7 @@ function contentDisposition(fileName) {
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
-/** 提供文件下载/静态访问，支持 Range 断点续传 */
+/** 提供文件下载/静态访问，支持 Range 断点续传、304 协商缓存与 gzip 压缩 */
 export async function serveFile(req, res, absPath, options = {}) {
   let stat;
   try {
@@ -155,16 +212,44 @@ export async function serveFile(req, res, absPath, options = {}) {
 
   const total = stat.size;
   const type = options.contentType || mimeOf(absPath);
+  const etag = etagOf(stat);
   const headers = {
     'Content-Type': type,
     'Accept-Ranges': 'bytes',
     'Cache-Control': options.cache || 'public, max-age=3600',
-    'Last-Modified': stat.mtime.toUTCString()
+    'Last-Modified': stat.mtime.toUTCString(),
+    ETag: etag,
+    Vary: 'Accept-Encoding'
   };
   if (options.downloadName) headers['Content-Disposition'] = contentDisposition(options.downloadName);
   if (options.extraHeaders) Object.assign(headers, options.extraHeaders);
 
+  // 已有最新副本：直接回 304，不传正文
+  if (isFresh(req, etag, stat.mtimeMs)) {
+    res.writeHead(304, {
+      ETag: etag,
+      'Last-Modified': headers['Last-Modified'],
+      'Cache-Control': headers['Cache-Control'],
+      Vary: 'Accept-Encoding'
+    });
+    return res.end();
+  }
+
   const range = req.headers.range;
+  // 附件下载不压缩：同一文件两种编码会让 Range 续传的字节偏移失去参照
+  const useGzip =
+    !range &&
+    !options.downloadName &&
+    req.method === 'GET' &&
+    total >= MIN_GZIP_BYTES &&
+    COMPRESSIBLE.test(type) &&
+    acceptsGzip(req);
+  if (useGzip) {
+    // 压缩后长度未知，交给 Node 走 chunked 传输
+    headers['Content-Encoding'] = 'gzip';
+    delete headers['Content-Length'];
+  }
+
   if (range && /^bytes=/.test(range)) {
     const [startRaw, endRaw] = range.replace(/^bytes=/, '').split('-');
     let start = startRaw ? parseInt(startRaw, 10) : 0;
@@ -178,13 +263,24 @@ export async function serveFile(req, res, absPath, options = {}) {
     headers['Content-Length'] = end - start + 1;
     res.writeHead(206, headers);
     if (req.method === 'HEAD') return res.end();
-    return fs.createReadStream(absPath, { start, end }).pipe(res);
+    return pipeOut(req, res, absPath, { start, end });
   }
 
-  headers['Content-Length'] = total;
+  if (!useGzip) headers['Content-Length'] = total;
   res.writeHead(200, headers);
   if (req.method === 'HEAD') return res.end();
-  return fs.createReadStream(absPath).pipe(res);
+  return pipeOut(req, res, absPath, { gzip: useGzip });
+}
+
+/** 读文件流出到响应；gzip 时中间插入压缩流，客户端断开时同步释放文件流 */
+function pipeOut(req, res, absPath, { start, end, gzip = false } = {}) {
+  const source = fs.createReadStream(absPath, start === undefined ? undefined : { start, end });
+  source.on('error', () => res.destroy());
+  res.on('close', () => source.destroy());
+  if (!gzip) return source.pipe(res);
+  const compressor = zlib.createGzip({ level: zlib.constants.Z_DEFAULT_COMPRESSION });
+  compressor.on('error', () => res.destroy());
+  return source.pipe(compressor).pipe(res);
 }
 
 /** 规范化字符串字段 */
